@@ -12,6 +12,22 @@ export const bn = {
   name: 'নাম',
   role: 'ভূমিকা',
   distributorId: 'ডিস্ট্রিবিউটর আইডি',
+  manageSrs: 'এসআর ম্যানেজ করুন',
+  srList: 'এসআর তালিকা',
+  createSr: 'এসআর তৈরি করুন',
+  editSr: 'এসআর সম্পাদনা',
+  save: 'সংরক্ষণ',
+  active: 'সক্রিয়',
+  inactive: 'নিষ্ক্রিয়',
+  activate: 'সক্রিয় করুন',
+  deactivate: 'নিষ্ক্রিয় করুন',
+  emptySrList: 'কোনো এসআর নেই। নতুন এসআর তৈরি করুন।',
+  createSrSuccess: 'এসআর সফলভাবে তৈরি হয়েছে।',
+  saveSuccess: 'সংরক্ষণ হয়েছে।',
+  errorCreateSr: 'এসআর তৈরি করা যায়নি। ইমেইল ইতিমধ্যে ব্যবহৃত হতে পারে।',
+  errorSave: 'সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
+  errorLoadSrs: 'এসআর তালিকা লোড করা যায়নি।',
+  errorNotFound: 'এসআর পাওয়া যায়নি।',
 } as const;
 
 export type TranslationKey = keyof typeof bn;

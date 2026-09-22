@@ -25,6 +25,17 @@ service cloud.firestore {
       return isActiveUser() && distId == distributorId();
     }
 
+    function immutableIdentity() {
+      return request.resource.data.role == resource.data.role
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.email == resource.data.email;
+    }
+
+    function onlyNameActiveUpdated() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(['name', 'active', 'updatedAt']);
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (
         request.auth.uid == userId ||
@@ -41,10 +52,21 @@ service cloud.firestore {
           && request.resource.data.distributorId == distributorId()
         )
       );
-      allow update: if isActiveUser() && (
-        request.auth.uid == userId ||
-        (role() == 'distributor' && resource.data.distributorId == distributorId())
-      );
+      allow update: if isActiveUser()
+        && immutableIdentity()
+        && (
+          (
+            request.auth.uid == userId
+            && request.resource.data.diff(resource.data).affectedKeys()
+              .hasOnly(['name', 'updatedAt'])
+          )
+          || (
+            role() == 'distributor'
+            && resource.data.distributorId == distributorId()
+            && resource.data.role == 'sr'
+            && onlyNameActiveUpdated()
+          )
+        );
     }
 
     match /distributors/{distId} {

@@ -45,6 +45,14 @@ export async function setUserActive(uid: string, active: boolean): Promise<void>
   await setDoc(doc(db, 'users', uid), { active, updatedAt: serverTimestamp() }, { merge: true });
 }
 
+export async function updateUserName(uid: string, name: string): Promise<void> {
+  await setDoc(
+    doc(db, 'users', uid),
+    { name: name.trim(), updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+}
+
 export async function createUserProfile(input: {
   uid: string;
   name: string;

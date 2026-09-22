@@ -6,13 +6,16 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { AppButton, AppInput } from '@/src/ui/Form';
+import { LanguageToggle } from '@/src/ui/LanguageToggle';
 import { colors, spacing, typography } from '@/src/theme/tokens';
 
 export default function LoginScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { login, error } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,6 +39,8 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <LanguageToggle style={[styles.langToggle, { top: insets.top + spacing.sm }]} />
+
       <View style={styles.hero}>
         <Text style={styles.brand}>{t('appName')}</Text>
         <Text style={styles.title}>{t('loginTitle')}</Text>
@@ -75,6 +80,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     padding: spacing.lg,
     justifyContent: 'center',
+  },
+  langToggle: {
+    position: 'absolute',
+    right: spacing.lg,
+    zIndex: 1,
   },
   hero: { marginBottom: spacing.xl },
   brand: {
