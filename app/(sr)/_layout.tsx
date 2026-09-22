@@ -16,6 +16,9 @@ export default function SrLayout() {
       }}
     >
       <Stack.Screen name="dashboard" options={{ title: t('dashboard') }} />
+      <Stack.Screen name="shops/index" options={{ title: t('shopList') }} />
+      <Stack.Screen name="shops/create" options={{ title: t('createShop') }} />
+      <Stack.Screen name="shops/[id]" options={{ title: t('shopDetail') }} />
     </Stack>
   );
 }

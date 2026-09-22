@@ -42,6 +42,22 @@ export const bn = {
   errorLoadProductsIndex: 'পণ্য ইনডেক্স এখনও প্রস্তুত নয়। কিছুক্ষণ পর আবার চেষ্টা করুন।',
   errorCreateProduct: 'পণ্য তৈরি করা যায়নি।',
   errorProductNotFound: 'পণ্য পাওয়া যায়নি।',
+  shops: 'দোকান',
+  shopList: 'দোকান তালিকা',
+  createShop: 'দোকান তৈরি করুন',
+  shopDetail: 'দোকানের বিবরণ',
+  phone: 'ফোন',
+  address: 'ঠিকানা',
+  area: 'এলাকা',
+  ownerName: 'মালিকের নাম',
+  searchShops: 'দোকান খুঁজুন…',
+  emptyShopList: 'কোনো দোকান নেই। নতুন দোকান তৈরি করুন।',
+  previousOrders: 'পূর্ববর্তী অর্ডার',
+  emptyShopOrders: 'এই দোকানের কোনো অর্ডার নেই।',
+  lines: 'লাইন',
+  errorLoadShops: 'দোকান তালিকা লোড করা যায়নি।',
+  errorCreateShop: 'দোকান তৈরি করা যায়নি।',
+  errorShopNotFound: 'দোকান পাওয়া যায়নি।',
 } as const;
 
 export type TranslationKey = keyof typeof bn;

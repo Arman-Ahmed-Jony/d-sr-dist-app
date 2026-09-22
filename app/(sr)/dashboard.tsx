@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { Link } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { AppButton } from '@/src/ui/Form';
@@ -23,6 +24,9 @@ export default function SrDashboard() {
       <Text style={styles.meta}>
         {t('distributorId')}: {profile?.distributorId}
       </Text>
+      <Link href="/(sr)/shops" asChild>
+        <AppButton title={t('shops')} style={styles.shops} />
+      </Link>
       <AppButton title={t('logout')} variant="ghost" onPress={() => logout()} style={styles.logout} />
     </View>
   );
@@ -37,5 +41,6 @@ const styles = StyleSheet.create({
   },
   title: { ...typography.title, color: colors.primary, marginBottom: spacing.md },
   meta: { ...typography.body, color: colors.text },
-  logout: { marginTop: spacing.xl },
+  shops: { marginTop: spacing.lg },
+  logout: { marginTop: spacing.md },
 });

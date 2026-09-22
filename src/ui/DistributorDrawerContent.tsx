@@ -31,6 +31,11 @@ export function DistributorDrawerContent(props: DrawerContentComponentProps) {
     router.push('/(distributor)/(app)/products');
   };
 
+  const goShops = () => {
+    close();
+    router.push('/(distributor)/(app)/shops');
+  };
+
   const onLogout = async () => {
     close();
     await logout();
@@ -62,6 +67,14 @@ export function DistributorDrawerContent(props: DrawerContentComponentProps) {
         style={({ pressed }) => [styles.item, pressed && styles.pressed]}
       >
         <Text style={styles.itemLabel}>{t('products')}</Text>
+      </Pressable>
+
+      <Pressable
+        accessibilityRole="button"
+        onPress={goShops}
+        style={({ pressed }) => [styles.item, pressed && styles.pressed]}
+      >
+        <Text style={styles.itemLabel}>{t('shops')}</Text>
       </Pressable>
 
       <Pressable

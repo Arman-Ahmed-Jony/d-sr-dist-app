@@ -29,6 +29,20 @@ export interface Product {
   updatedAt: Date;
 }
 
+export interface Shop {
+  id: string;
+  distributorId: string;
+  name: string;
+  nameNormalized: string;
+  phone: string;
+  address: string;
+  area: string;
+  ownerName: string;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface OrderLine {
   productId: string;
   productName: string;
@@ -41,6 +55,8 @@ export interface Order {
   id: string;
   distributorId: string;
   srId: string;
+  shopId: string;
+  shopName: string;
   lines: OrderLine[];
   status: OrderStatus;
   createdAt: Date;

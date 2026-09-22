@@ -152,6 +152,41 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function shopFieldsValid() {
+      return request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.nameNormalized is string
+        && request.resource.data.nameNormalized.size() > 0
+        && request.resource.data.phone is string
+        && request.resource.data.address is string
+        && request.resource.data.area is string
+        && request.resource.data.ownerName is string
+        && request.resource.data.createdBy is string
+        && request.resource.data.distributorId is string;
+    }
+
+    match /shops/{shopId} {
+      allow read: if isActiveUser()
+        && resource.data.distributorId == distributorId();
+
+      allow create: if isActiveUser()
+        && (role() == 'sr' || role() == 'distributor')
+        && request.resource.data.distributorId == distributorId()
+        && request.resource.data.createdBy == request.auth.uid
+        && shopFieldsValid();
+
+      allow update: if isActiveUser()
+        && (role() == 'sr' || role() == 'distributor')
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.createdBy == resource.data.createdBy
+        && shopFieldsValid()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'nameNormalized', 'phone', 'address', 'area', 'ownerName', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
     match /orders/{orderId} {
       allow read: if isActiveUser()
         && resource.data.distributorId == distributorId();
@@ -160,6 +195,8 @@ service cloud.firestore {
         && (role() == 'sr' || role() == 'distributor')
         && request.resource.data.distributorId == distributorId()
         && request.resource.data.srId is string
+        && request.resource.data.shopId is string
+        && request.resource.data.shopName is string
         && request.resource.data.status is string
         && orderLinesValid();
 
