@@ -30,4 +30,6 @@ export const en: Record<TranslationKey, string> = {
   errorSave: 'Could not save. Please try again.',
   errorLoadSrs: 'Could not load sales reps.',
   errorNotFound: 'Sales rep not found.',
+  language: 'Language',
+  menu: 'Menu',
 };

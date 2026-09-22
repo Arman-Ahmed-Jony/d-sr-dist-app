@@ -41,7 +41,7 @@ export default function CreateSrScreen() {
         role: 'sr',
         distributorId: profile.distributorId,
       });
-      router.replace('/(distributor)/srs');
+      router.replace('/(distributor)/(app)/srs');
     } catch {
       setError(t('errorCreateSr'));
     } finally {

@@ -28,6 +28,8 @@ export const bn = {
   errorSave: 'সংরক্ষণ করা যায়নি। আবার চেষ্টা করুন।',
   errorLoadSrs: 'এসআর তালিকা লোড করা যায়নি।',
   errorNotFound: 'এসআর পাওয়া যায়নি।',
+  language: 'ভাষা',
+  menu: 'মেনু',
 } as const;
 
 export type TranslationKey = keyof typeof bn;

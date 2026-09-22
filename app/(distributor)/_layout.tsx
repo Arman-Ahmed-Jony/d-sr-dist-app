@@ -1,24 +1,23 @@
-import { Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { LanguageToggle } from '@/src/ui/LanguageToggle';
-import { colors, spacing } from '@/src/theme/tokens';
+import { Drawer } from 'expo-router/drawer';
+import { DistributorDrawerContent } from '@/src/ui/DistributorDrawerContent';
+import { colors } from '@/src/theme/tokens';
 
 export default function DistributorLayout() {
-  const { t } = useTranslation();
-
   return (
-    <Stack
+    <Drawer
+      drawerContent={(props) => <DistributorDrawerContent {...props} />}
       screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        contentStyle: { backgroundColor: colors.background },
-        headerRight: () => <LanguageToggle style={{ marginRight: spacing.sm }} />,
+        headerShown: false,
+        drawerPosition: 'right',
+        drawerType: 'front',
+        drawerStyle: {
+          backgroundColor: colors.background,
+          width: 300,
+        },
+        overlayColor: 'rgba(28, 25, 20, 0.4)',
       }}
     >
-      <Stack.Screen name="dashboard" options={{ title: t('dashboard') }} />
-      <Stack.Screen name="srs/index" options={{ title: t('srList') }} />
-      <Stack.Screen name="srs/create" options={{ title: t('createSr') }} />
-      <Stack.Screen name="srs/[uid]" options={{ title: t('editSr') }} />
-    </Stack>
+      <Drawer.Screen name="(app)" options={{ title: 'SR Dist' }} />
+    </Drawer>
   );
 }

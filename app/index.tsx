@@ -26,7 +26,7 @@ export default function Index() {
   }
 
   if (profile.role === 'distributor') {
-    return <Redirect href="/(distributor)/dashboard" />;
+    return <Redirect href="/(distributor)/(app)/dashboard" />;
   }
 
   return <Redirect href="/(sr)/dashboard" />;

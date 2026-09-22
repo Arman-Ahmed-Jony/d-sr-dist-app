@@ -1,8 +1,10 @@
+import 'react-native-gesture-handler';
 import '@/src/i18n';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, type ReactNode } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/tokens';
 
@@ -28,7 +30,7 @@ function AuthGate({ children }: { children: ReactNode }) {
 
     if (inAuth) {
       if (profile.role === 'distributor') {
-        router.replace('/(distributor)/dashboard');
+        router.replace('/(distributor)/(app)/dashboard');
       } else {
         router.replace('/(sr)/dashboard');
       }
@@ -39,7 +41,7 @@ function AuthGate({ children }: { children: ReactNode }) {
       router.replace('/(sr)/dashboard');
     }
     if (profile.role === 'distributor' && segments[0] === '(sr)') {
-      router.replace('/(distributor)/dashboard');
+      router.replace('/(distributor)/(app)/dashboard');
     }
   }, [firebaseUser, profile, loading, segments, router]);
 
@@ -48,22 +50,24 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <AuthGate>
-        <Stack
-          screenOptions={{
-            headerStyle: { backgroundColor: colors.background },
-            headerTintColor: colors.text,
-            contentStyle: { backgroundColor: colors.background },
-          }}
-        >
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(sr)" options={{ headerShown: false }} />
-          <Stack.Screen name="(distributor)" options={{ headerShown: false }} />
-          <Stack.Screen name="index" options={{ headerShown: false }} />
-        </Stack>
-      </AuthGate>
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <AuthGate>
+          <Stack
+            screenOptions={{
+              headerStyle: { backgroundColor: colors.background },
+              headerTintColor: colors.text,
+              contentStyle: { backgroundColor: colors.background },
+            }}
+          >
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="(sr)" options={{ headerShown: false }} />
+            <Stack.Screen name="(distributor)" options={{ headerShown: false }} />
+            <Stack.Screen name="index" options={{ headerShown: false }} />
+          </Stack>
+        </AuthGate>
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

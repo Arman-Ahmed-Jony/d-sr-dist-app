@@ -62,7 +62,7 @@ export default function SrListScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(distributor)/srs/create" asChild>
+      <Link href="/(distributor)/(app)/srs/create" asChild>
         <AppButton title={t('createSr')} style={styles.createBtn} />
       </Link>
 
@@ -79,7 +79,7 @@ export default function SrListScreen() {
           <Text style={styles.muted}>{t('emptySrList')}</Text>
         }
         renderItem={({ item }) => (
-          <Link href={`/(distributor)/srs/${item.id}`} asChild>
+          <Link href={`/(distributor)/(app)/srs/${item.id}`} asChild>
             <Pressable style={styles.row}>
               <View style={styles.rowText}>
                 <Text style={styles.rowName}>{item.name}</Text>
