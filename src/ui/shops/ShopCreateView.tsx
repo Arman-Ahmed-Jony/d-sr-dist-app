@@ -59,8 +59,13 @@ export function ShopCreateView({ listHref }: Props) {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.form}>
           <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
           <AppInput
@@ -81,6 +86,7 @@ export function ShopCreateView({ listHref }: Props) {
             value={address}
             onChangeText={setAddress}
             multiline
+            style={styles.multiline}
           />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           <AppButton
@@ -96,13 +102,17 @@ export function ShopCreateView({ listHref }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg },
+  container: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xl },
   form: {
     backgroundColor: colors.surface,
     borderRadius: radii.lg,
     padding: spacing.lg,
     borderWidth: 1,
     borderColor: colors.border,
+  },
+  multiline: {
+    minHeight: 88,
+    textAlignVertical: 'top',
   },
   error: { color: colors.danger, marginBottom: spacing.md },
 });

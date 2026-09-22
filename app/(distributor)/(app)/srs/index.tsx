@@ -69,6 +69,7 @@ export default function SrListScreen() {
       {error ? <Text style={styles.error}>{error}</Text> : null}
 
       <FlatList
+        style={styles.listFlex}
         data={srs}
         keyExtractor={(item) => item.id}
         contentContainerStyle={srs.length === 0 ? styles.emptyContainer : styles.list}
@@ -122,6 +123,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   createBtn: { marginBottom: spacing.md },
+  listFlex: { flex: 1 },
   list: { gap: spacing.sm, paddingBottom: spacing.xl },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   row: {

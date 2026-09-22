@@ -50,7 +50,7 @@ function AuthGate({ children }: { children: ReactNode }) {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
         <StatusBar style="dark" />
         <AuthGate>
@@ -71,3 +71,12 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+const styles = {
+  root: {
+    flex: 1,
+    width: '100%' as const,
+    maxWidth: '100%' as const,
+    overflow: 'hidden' as const,
+  },
+};

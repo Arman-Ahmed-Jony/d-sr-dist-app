@@ -133,8 +133,13 @@ export function ShopDetailView({ shopId }: Props) {
     <KeyboardAvoidingView
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 88 : 0}
     >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.form}>
           <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
           <AppInput
@@ -150,7 +155,13 @@ export function ShopDetailView({ shopId }: Props) {
             keyboardType="phone-pad"
           />
           <AppInput label={t('area')} value={area} onChangeText={setArea} />
-          <AppInput label={t('address')} value={address} onChangeText={setAddress} multiline />
+          <AppInput
+            label={t('address')}
+            value={address}
+            onChangeText={setAddress}
+            multiline
+            style={styles.multiline}
+          />
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {message ? <Text style={styles.message}>{message}</Text> : null}
           <AppButton
@@ -185,7 +196,7 @@ export function ShopDetailView({ shopId }: Props) {
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xl },
+  container: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xl },
   centered: {
     flex: 1,
     backgroundColor: colors.background,
@@ -201,6 +212,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     marginBottom: spacing.lg,
+  },
+  multiline: {
+    minHeight: 88,
+    textAlignVertical: 'top',
   },
   sectionTitle: {
     ...typography.heading,
