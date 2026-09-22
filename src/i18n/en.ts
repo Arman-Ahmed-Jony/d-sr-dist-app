@@ -32,4 +32,17 @@ export const en: Record<TranslationKey, string> = {
   errorNotFound: 'Sales rep not found.',
   language: 'Language',
   menu: 'Menu',
+  products: 'Products',
+  productList: 'Products',
+  createProduct: 'Create product',
+  editProduct: 'Edit product',
+  pricePerCase: 'Price per case',
+  searchProducts: 'Search products…',
+  emptyProductList: 'No products yet. Create one to get started.',
+  errorLoadProducts: 'Could not load products.',
+  errorLoadProductsPermission:
+    'No permission to read products. Confirm Firestore rules are deployed.',
+  errorLoadProductsIndex: 'Product index is still building. Try again in a moment.',
+  errorCreateProduct: 'Could not create product.',
+  errorProductNotFound: 'Product not found.',
 };

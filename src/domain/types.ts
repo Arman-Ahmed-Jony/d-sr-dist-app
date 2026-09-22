@@ -1,5 +1,7 @@
 export type UserRole = 'sr' | 'distributor';
 
+export type OrderStatus = 'draft' | 'submitted' | 'confirmed' | 'cancelled';
+
 export interface AppUser {
   id: string;
   name: string;
@@ -15,4 +17,32 @@ export interface Distributor {
   name: string;
   active: boolean;
   createdAt: Date;
+}
+
+export interface Product {
+  id: string;
+  distributorId: string;
+  name: string;
+  pricePerCase: number;
+  active: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface OrderLine {
+  productId: string;
+  productName: string;
+  pricePerCase: number;
+  quantityCases: number;
+  lineTotal: number;
+}
+
+export interface Order {
+  id: string;
+  distributorId: string;
+  srId: string;
+  lines: OrderLine[];
+  status: OrderStatus;
+  createdAt: Date;
+  updatedAt: Date;
 }

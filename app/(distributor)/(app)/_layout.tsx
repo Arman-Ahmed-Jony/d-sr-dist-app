@@ -21,6 +21,9 @@ export default function DistributorAppLayout() {
       <Stack.Screen name="srs/index" options={{ title: t('srList') }} />
       <Stack.Screen name="srs/create" options={{ title: t('createSr') }} />
       <Stack.Screen name="srs/[uid]" options={{ title: t('editSr') }} />
+      <Stack.Screen name="products/index" options={{ title: t('productList') }} />
+      <Stack.Screen name="products/create" options={{ title: t('createProduct') }} />
+      <Stack.Screen name="products/[id]" options={{ title: t('editProduct') }} />
     </Stack>
   );
 }

@@ -36,6 +36,57 @@ service cloud.firestore {
         .hasOnly(['name', 'active', 'updatedAt']);
     }
 
+    function productFieldsValid() {
+      return request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.pricePerCase is number
+        && request.resource.data.pricePerCase >= 0
+        && request.resource.data.active is bool
+        && request.resource.data.distributorId is string;
+    }
+
+    function orderLineValid(line) {
+      return line.keys().hasAll([
+          'productId', 'productName', 'pricePerCase', 'quantityCases', 'lineTotal'
+        ])
+        && line.productId is string
+        && line.productName is string
+        && line.pricePerCase is number
+        && line.pricePerCase >= 0
+        && line.quantityCases is number
+        && line.quantityCases > 0
+        && line.lineTotal is number;
+    }
+
+    // Firestore rules disallow recursion — unroll checks for up to 20 lines.
+    function orderLinesValid() {
+      let lines = request.resource.data.lines;
+      let n = lines.size();
+      return lines is list
+        && n > 0
+        && n <= 20
+        && orderLineValid(lines[0])
+        && (n < 2 || orderLineValid(lines[1]))
+        && (n < 3 || orderLineValid(lines[2]))
+        && (n < 4 || orderLineValid(lines[3]))
+        && (n < 5 || orderLineValid(lines[4]))
+        && (n < 6 || orderLineValid(lines[5]))
+        && (n < 7 || orderLineValid(lines[6]))
+        && (n < 8 || orderLineValid(lines[7]))
+        && (n < 9 || orderLineValid(lines[8]))
+        && (n < 10 || orderLineValid(lines[9]))
+        && (n < 11 || orderLineValid(lines[10]))
+        && (n < 12 || orderLineValid(lines[11]))
+        && (n < 13 || orderLineValid(lines[12]))
+        && (n < 14 || orderLineValid(lines[13]))
+        && (n < 15 || orderLineValid(lines[14]))
+        && (n < 16 || orderLineValid(lines[15]))
+        && (n < 17 || orderLineValid(lines[16]))
+        && (n < 18 || orderLineValid(lines[17]))
+        && (n < 19 || orderLineValid(lines[18]))
+        && (n < 20 || orderLineValid(lines[19]));
+    }
+
     match /users/{userId} {
       allow read: if signedIn() && (
         request.auth.uid == userId ||
@@ -72,6 +123,47 @@ service cloud.firestore {
     match /distributors/{distId} {
       allow read: if sameDistributor(distId);
       allow write: if false;
+    }
+
+    match /products/{productId} {
+      // Split allows so list queries can be proven against rules.
+      allow read: if isActiveUser()
+        && role() == 'distributor'
+        && resource.data.distributorId == distributorId();
+
+      allow read: if isActiveUser()
+        && role() == 'sr'
+        && resource.data.distributorId == distributorId()
+        && resource.data.active == true;
+
+      allow create: if isActiveUser()
+        && role() == 'distributor'
+        && request.resource.data.distributorId == distributorId()
+        && productFieldsValid();
+
+      allow update: if isActiveUser()
+        && role() == 'distributor'
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.distributorId == resource.data.distributorId
+        && productFieldsValid()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['name', 'pricePerCase', 'active', 'updatedAt']);
+
+      allow delete: if false;
+    }
+
+    match /orders/{orderId} {
+      allow read: if isActiveUser()
+        && resource.data.distributorId == distributorId();
+
+      allow create: if isActiveUser()
+        && (role() == 'sr' || role() == 'distributor')
+        && request.resource.data.distributorId == distributorId()
+        && request.resource.data.srId is string
+        && request.resource.data.status is string
+        && orderLinesValid();
+
+      allow update, delete: if false;
     }
   }
 }

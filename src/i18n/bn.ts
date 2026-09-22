@@ -30,6 +30,18 @@ export const bn = {
   errorNotFound: 'এসআর পাওয়া যায়নি।',
   language: 'ভাষা',
   menu: 'মেনু',
+  products: 'পণ্য',
+  productList: 'পণ্য তালিকা',
+  createProduct: 'পণ্য তৈরি করুন',
+  editProduct: 'পণ্য সম্পাদনা',
+  pricePerCase: 'প্রতি কেসের দাম',
+  searchProducts: 'পণ্য খুঁজুন…',
+  emptyProductList: 'কোনো পণ্য নেই। নতুন পণ্য তৈরি করুন।',
+  errorLoadProducts: 'পণ্য তালিকা লোড করা যায়নি।',
+  errorLoadProductsPermission: 'পণ্য দেখার অনুমতি নেই। Firestore rules ডিপ্লয় হয়েছে কিনা দেখুন।',
+  errorLoadProductsIndex: 'পণ্য ইনডেক্স এখনও প্রস্তুত নয়। কিছুক্ষণ পর আবার চেষ্টা করুন।',
+  errorCreateProduct: 'পণ্য তৈরি করা যায়নি।',
+  errorProductNotFound: 'পণ্য পাওয়া যায়নি।',
 } as const;
 
 export type TranslationKey = keyof typeof bn;
