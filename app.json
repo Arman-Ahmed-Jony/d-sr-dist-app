@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "SR Dist",
+    "slug": "sr-dist-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "srdist",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.srdist.app"
+    },
+    "android": {
+      "package": "com.srdist.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0F5C4C",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#F3F0E8"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "firebaseApiKey": "AIzaSyBKl3uaOSHQGBwAu-YLOepvUY_QnOMBQJI",
+      "firebaseAuthDomain": "sr-dist-app.firebaseapp.com",
+      "firebaseProjectId": "sr-dist-app",
+      "firebaseStorageBucket": "sr-dist-app.firebasestorage.app",
+      "firebaseMessagingSenderId": "1038865149096",
+      "firebaseAppId": "1:1038865149096:web:280e52a5fc36376c39a69d",
+      "useFirebaseEmulator": false
+    }
+  }
+}
