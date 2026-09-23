@@ -9,6 +9,7 @@ import { listOrdersByShop } from '@/src/data/repos/ordersRepo';
 import type { Order, Shop } from '@/src/domain/types';
 import { AppButton, AppInput } from '@/src/ui/Form';
 import { StatusChip } from '@/src/ui/StatusChip';
+import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Props = {
@@ -193,7 +194,20 @@ export function ShopDetailView({ shopId }: Props) {
               title={order.orderDate.toLocaleDateString()}
               description={`${order.lines.length} ${t('lines')} · ${order.orderTotal}`}
               style={styles.orderRow}
-              right={() => <StatusChip status={order.status} />}
+              right={() => (
+                <View style={styles.orderRight}>
+                  <StatusChip status={order.status} />
+                  {order.status === 'draft' && profile?.distributorId ? (
+                    <DeleteDraftOrderButton
+                      orderId={order.id}
+                      distributorId={profile.distributorId}
+                      compact
+                      onDeleted={() => void load()}
+                      onError={setError}
+                    />
+                  ) : null}
+                </View>
+              )}
             />
           ))
         )}
@@ -228,6 +242,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.md,
     marginBottom: spacing.sm,
+  },
+  orderRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   error: { color: colors.danger, marginBottom: spacing.md },
   message: { color: colors.success, marginBottom: spacing.md },

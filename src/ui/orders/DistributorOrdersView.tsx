@@ -31,6 +31,8 @@ import { colors, spacing } from '@/src/theme/tokens';
 
 type Props = {
   orders: Order[];
+  distributorId?: string;
+  onDraftDeleted?: () => void;
 };
 
 type SummaryChip = {
@@ -50,7 +52,7 @@ function formatDateRange(from?: Date, to?: Date): string {
   return '';
 }
 
-export function DistributorOrdersView({ orders }: Props) {
+export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }: Props) {
   const { t } = useTranslation();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [view, setView] = useState<OrderTableView>('order');
@@ -226,7 +228,12 @@ export function DistributorOrdersView({ orders }: Props) {
           {t('emptyOrderTable')}
         </Text>
       ) : (
-        <OrderDataTable view={view} groups={groups} />
+        <OrderDataTable
+          view={view}
+          groups={groups}
+          distributorId={distributorId}
+          onDraftDeleted={onDraftDeleted}
+        />
       )}
     </View>
   );

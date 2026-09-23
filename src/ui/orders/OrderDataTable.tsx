@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { DataTable, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { StatusChip } from '@/src/ui/StatusChip';
+import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
 import type {
   OrderTableGroup,
   OrderTableRow,
@@ -19,6 +20,8 @@ type Column = {
 type Props = {
   view: OrderTableView;
   groups: OrderTableGroup<OrderTableRow>[];
+  distributorId?: string;
+  onDraftDeleted?: () => void;
 };
 
 function formatAmount(value: number): string {
@@ -32,7 +35,7 @@ const cellStyle = (width: number) => ({
   maxWidth: width,
 });
 
-export function OrderDataTable({ view, groups }: Props) {
+export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: Props) {
   const { t } = useTranslation();
 
   const columns: Column[] =
@@ -56,6 +59,7 @@ export function OrderDataTable({ view, groups }: Props) {
           { key: 'cases', label: t('quantityCases'), width: 80, value: (row) => formatAmount(row.cases) },
           { key: 'freePcs', label: t('freePcs'), width: 80, value: (row) => formatAmount(row.freePcs) },
           { key: 'money', label: t('orderTotal'), width: 90, value: (row) => formatAmount(row.money) },
+          { key: 'actions', label: '', width: 56, value: () => '' },
         ]
       : [
           { key: 'shop', label: t('shop'), width: 150, value: (row) => row.shopName },
@@ -119,6 +123,18 @@ export function OrderDataTable({ view, groups }: Props) {
                   <DataTable.Cell key={column.key} style={cellStyle(column.width)}>
                     {column.key === 'status' ? (
                       <StatusChip status={row.status} />
+                    ) : column.key === 'actions' ? (
+                      view === 'order' &&
+                      row.status === 'draft' &&
+                      distributorId &&
+                      onDraftDeleted ? (
+                        <DeleteDraftOrderButton
+                          orderId={row.order.id}
+                          distributorId={distributorId}
+                          compact
+                          onDeleted={onDraftDeleted}
+                        />
+                      ) : null
                     ) : (
                       column.value(row)
                     )}

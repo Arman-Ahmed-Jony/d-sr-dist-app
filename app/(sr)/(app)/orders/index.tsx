@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Link, router, useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { ActivityIndicator, FAB, List, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
@@ -8,6 +8,7 @@ import { listOrdersBySr } from '@/src/data/repos/ordersRepo';
 import type { Order } from '@/src/domain/types';
 import { EmptyState } from '@/src/ui/EmptyState';
 import { StatusChip } from '@/src/ui/StatusChip';
+import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export default function SrOrderListScreen() {
@@ -82,17 +83,28 @@ export default function SrOrderListScreen() {
           />
         }
         renderItem={({ item }) => (
-          <Link
-            href={{ pathname: '/(sr)/(app)/orders/[id]', params: { id: item.id } }}
-            asChild
-          >
-            <List.Item
-              title={item.shopName}
-              description={`${item.orderDate.toLocaleDateString()} · ${item.lines.length} ${t('lines')} · ${item.orderTotal}`}
-              style={styles.row}
-              right={() => <StatusChip status={item.status} />}
-            />
-          </Link>
+          <List.Item
+            title={item.shopName}
+            description={`${item.orderDate.toLocaleDateString()} · ${item.lines.length} ${t('lines')} · ${item.orderTotal}`}
+            style={styles.row}
+            onPress={() =>
+              router.push({ pathname: '/(sr)/(app)/orders/[id]', params: { id: item.id } })
+            }
+            right={() => (
+              <View style={styles.rowRight}>
+                <StatusChip status={item.status} />
+                {item.status === 'draft' && profile?.distributorId ? (
+                  <DeleteDraftOrderButton
+                    orderId={item.id}
+                    distributorId={profile.distributorId}
+                    compact
+                    onDeleted={() => void load()}
+                    onError={setError}
+                  />
+                ) : null}
+              </View>
+            )}
+          />
         )}
       />
       <FAB
@@ -130,6 +142,10 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     minHeight: 56,
     paddingVertical: spacing.sm,
+  },
+  rowRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   fab: {
     position: 'absolute',

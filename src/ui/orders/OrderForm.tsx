@@ -5,6 +5,7 @@ import { ActivityIndicator, Card, SegmentedButtons, Text } from 'react-native-pa
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { createOrder, updateOrder } from '@/src/data/repos/ordersRepo';
+import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
 import { listActiveProductsByDistributor } from '@/src/data/repos/productsRepo';
 import { listShopsByDistributor } from '@/src/data/repos/shopsRepo';
 import { computeLineTotal, computeOrderTotal } from '@/src/domain/orderCalc';
@@ -442,6 +443,14 @@ export function OrderForm({ order }: Props) {
           onPress={onSubmit}
           disabled={submitting}
         />
+        {order?.status === 'draft' && profile?.distributorId ? (
+          <DeleteDraftOrderButton
+            orderId={order.id}
+            distributorId={profile.distributorId}
+            onDeleted={() => router.replace('/(sr)/(app)/orders')}
+            onError={setError}
+          />
+        ) : null}
       </View>
     </KeyboardAvoidingView>
   );

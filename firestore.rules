@@ -236,7 +236,13 @@ service cloud.firestore {
         && request.resource.data.orderTotal >= 0
         && orderLinesValid();
 
-      allow delete: if false;
+      allow delete: if isActiveUser()
+        && resource.data.distributorId == distributorId()
+        && resource.data.status == 'draft'
+        && (
+          (role() == 'sr' && resource.data.srId == request.auth.uid)
+          || role() == 'distributor'
+        );
     }
   }
 }

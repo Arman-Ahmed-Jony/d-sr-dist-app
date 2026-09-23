@@ -71,7 +71,11 @@ export default function DistributorOrderTableScreen() {
           {error}
         </Text>
       ) : null}
-      <DistributorOrdersView orders={orders} />
+      <DistributorOrdersView
+        orders={orders}
+        distributorId={profile?.distributorId}
+        onDraftDeleted={() => void load()}
+      />
     </ScrollView>
   );
 }

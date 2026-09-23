@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -223,6 +224,20 @@ export async function updateOrder(input: {
     status: input.status ?? existing.status,
     updatedAt: serverTimestamp(),
   });
+}
+
+export async function deleteDraftOrder(id: string, distributorId: string): Promise<void> {
+  const existing = await getOrder(id);
+  if (!existing) {
+    throw new Error('Order not found.');
+  }
+  if (existing.distributorId !== distributorId) {
+    throw new Error('Order belongs to another distributor.');
+  }
+  if (existing.status !== 'draft') {
+    throw new Error('Only draft orders can be deleted.');
+  }
+  await deleteDoc(doc(db, 'orders', id));
 }
 
 export async function listOrdersByShop(shopId: string, distributorId: string): Promise<Order[]> {
