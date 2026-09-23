@@ -1,27 +1,42 @@
-import { Stack } from 'expo-router';
-import { useTranslation } from 'react-i18next';
-import { LanguageToggle } from '@/src/ui/LanguageToggle';
-import { colors, spacing } from '@/src/theme/tokens';
+import { Platform, StyleSheet, View } from 'react-native';
+import { Drawer } from 'expo-router/drawer';
+import { SrDrawerContent } from '@/src/ui/SrDrawerContent';
+import { colors } from '@/src/theme/tokens';
 
 export default function SrLayout() {
-  const { t } = useTranslation();
-
   return (
-    <Stack
-      screenOptions={{
-        headerStyle: { backgroundColor: colors.background },
-        headerTintColor: colors.text,
-        contentStyle: { backgroundColor: colors.background },
-        headerRight: () => <LanguageToggle style={{ marginRight: spacing.sm }} />,
-      }}
-    >
-      <Stack.Screen name="dashboard" options={{ title: t('dashboard') }} />
-      <Stack.Screen name="shops/index" options={{ title: t('shopList') }} />
-      <Stack.Screen name="shops/create" options={{ title: t('createShop') }} />
-      <Stack.Screen name="shops/[id]" options={{ title: t('shopDetail') }} />
-      <Stack.Screen name="orders/index" options={{ title: t('orderList') }} />
-      <Stack.Screen name="orders/create" options={{ title: t('createOrder') }} />
-      <Stack.Screen name="orders/[id]" options={{ title: t('editOrder') }} />
-    </Stack>
+    <View style={styles.root}>
+      <Drawer
+        drawerContent={(props) => <SrDrawerContent {...props} />}
+        screenOptions={{
+          headerShown: false,
+          drawerPosition: 'right',
+          drawerType: 'front',
+          drawerStyle: {
+            backgroundColor: colors.background,
+            width: 300,
+          },
+          overlayColor: 'rgba(28, 25, 20, 0.4)',
+          sceneStyle: Platform.OS === 'web' ? styles.scene : undefined,
+        }}
+      >
+        <Drawer.Screen name="(app)" options={{ title: 'SR Dist' }} />
+      </Drawer>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+    overflow: 'hidden',
+  },
+  scene: {
+    flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+    overflow: 'hidden',
+  },
+});

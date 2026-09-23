@@ -42,7 +42,7 @@ Demo accounts (already seeded for project `sr-dist-app`):
 
 UIDs: distributor `iSNNj7muIURV1kjIbpcWlXW6j163`, SR `aAy2xEOkHQfxrmhJjqxwNnYlWiR2`, org `dealer-1`.
 
-To re-seed profiles with Admin credentials:
+To re-seed profiles and dummy catalog/order data with Admin credentials:
 
 ```bash
 GOOGLE_APPLICATION_CREDENTIALS=./serviceAccount.json \
@@ -51,7 +51,17 @@ SEED_SR_UID=aAy2xEOkHQfxrmhJjqxwNnYlWiR2 \
 npx ts-node scripts/seed.ts
 ```
 
-Log in with each account — distributor routes to `(distributor)/dashboard`, SR to `(sr)/dashboard`.
+The script writes stable IDs (`prod-*`, `shop-*`, `order-*`) so re-runs overwrite the same dummy docs and leave other Firestore data alone.
+
+Dummy data (org `dealer-1`):
+
+| Collection | Count | Notes |
+|------------|-------|-------|
+| Products | 7 | 6 active + 1 inactive (`Lentil 20kg`) |
+| Shops | 6 | Motijheel, Dhanmondi, Gulshan, Uttara, Mirpur, New Market |
+| Orders | 10 | Mix of draft / submitted / confirmed / cancelled; discount + free-pcs lines |
+
+Log in with each account — distributor routes to `(distributor)/(app)/dashboard`, SR to `(sr)/(app)/dashboard`.
 
 ## Roles
 

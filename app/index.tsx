@@ -29,5 +29,5 @@ export default function Index() {
     return <Redirect href="/(distributor)/(app)/dashboard" />;
   }
 
-  return <Redirect href="/(sr)/dashboard" />;
+  return <Redirect href="/(sr)/(app)/dashboard" />;
 }

@@ -57,7 +57,7 @@ export default function SrOrderListScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(sr)/orders/create" asChild>
+      <Link href="/(sr)/(app)/orders/create" asChild>
         <AppButton title={t('createOrder')} style={styles.createBtn} />
       </Link>
       {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -79,7 +79,7 @@ export default function SrOrderListScreen() {
         ListEmptyComponent={<Text style={styles.muted}>{t('emptyOrderList')}</Text>}
         renderItem={({ item }) => (
           <Link
-            href={{ pathname: '/(sr)/orders/[id]', params: { id: item.id } }}
+            href={{ pathname: '/(sr)/(app)/orders/[id]', params: { id: item.id } }}
             asChild
           >
             <Pressable style={styles.row}>

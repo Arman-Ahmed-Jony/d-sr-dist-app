@@ -218,7 +218,7 @@ export function OrderForm({ order }: Props) {
           status: 'submitted',
         });
       }
-      router.replace('/(sr)/orders');
+      router.replace('/(sr)/(app)/orders');
     } catch {
       setError(editing ? t('errorUpdateOrder') : t('errorCreateOrder'));
     } finally {

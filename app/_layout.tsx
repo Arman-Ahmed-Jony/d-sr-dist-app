@@ -32,13 +32,13 @@ function AuthGate({ children }: { children: ReactNode }) {
       if (profile.role === 'distributor') {
         router.replace('/(distributor)/(app)/dashboard');
       } else {
-        router.replace('/(sr)/dashboard');
+        router.replace('/(sr)/(app)/dashboard');
       }
       return;
     }
 
     if (profile.role === 'sr' && segments[0] === '(distributor)') {
-      router.replace('/(sr)/dashboard');
+      router.replace('/(sr)/(app)/dashboard');
     }
     if (profile.role === 'distributor' && segments[0] === '(sr)') {
       router.replace('/(distributor)/(app)/dashboard');

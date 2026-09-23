@@ -17,8 +17,8 @@ import { AppButton, AppInput } from '@/src/ui/Form';
 import { colors, radii, spacing, typography } from '@/src/theme/tokens';
 
 type Props = {
-  /** e.g. `/(distributor)/(app)/shops` or `/(sr)/shops` */
-  baseHref: '/(distributor)/(app)/shops' | '/(sr)/shops';
+  /** e.g. `/(distributor)/(app)/shops` or `/(sr)/(app)/shops` */
+  baseHref: '/(distributor)/(app)/shops' | '/(sr)/(app)/shops';
 };
 
 export function ShopListView({ baseHref }: Props) {
@@ -107,8 +107,8 @@ export function ShopListView({ baseHref }: Props) {
         renderItem={({ item }) => (
           <Link
             href={
-              baseHref === '/(sr)/shops'
-                ? { pathname: '/(sr)/shops/[id]', params: { id: item.id } }
+              baseHref === '/(sr)/(app)/shops'
+                ? { pathname: '/(sr)/(app)/shops/[id]', params: { id: item.id } }
                 : {
                     pathname: '/(distributor)/(app)/shops/[id]',
                     params: { id: item.id },
