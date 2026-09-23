@@ -3,6 +3,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { bn } from './bn';
 import { en } from './en';
+import './paperDates';
 
 export type AppLanguage = 'bn' | 'en';
 

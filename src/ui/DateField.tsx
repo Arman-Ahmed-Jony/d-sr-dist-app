@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { Button, TextInput } from 'react-native-paper';
+import { StyleSheet, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
+import { DatePickerModal } from 'react-native-paper-dates';
+import { useTranslation } from 'react-i18next';
 import { spacing } from '@/src/theme/tokens';
 
 type Props = {
@@ -14,46 +15,42 @@ function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
-export function DateField({ label, value, onChange }: Props) {
-  const [open, setOpen] = useState(false);
+function appLocale(language?: string): 'en' | 'bn' {
+  return language?.startsWith('en') ? 'en' : 'bn';
+}
 
-  const onNativeChange = (event: DateTimePickerEvent, date?: Date) => {
-    if (Platform.OS === 'android') setOpen(false);
-    if (event.type === 'dismissed') {
-      setOpen(false);
-      return;
-    }
-    if (date) onChange(startOfDay(date));
-  };
+export function DateField({ label, value, onChange }: Props) {
+  const { i18n } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const locale = appLocale(i18n.language);
+  const display = value.toLocaleDateString(locale === 'bn' ? 'bn-BD' : 'en-US');
 
   return (
     <View style={styles.field}>
       <TextInput
         mode="outlined"
         label={label}
-        value={value.toLocaleDateString()}
+        value={display}
         editable={false}
+        showSoftInputOnFocus={false}
         onPressIn={() => setOpen(true)}
         right={<TextInput.Icon icon="calendar" onPress={() => setOpen(true)} />}
       />
-      {open ? (
-        <DateTimePicker
-          value={value}
-          mode="date"
-          display={Platform.OS === 'ios' ? 'inline' : 'default'}
-          onChange={onNativeChange}
-        />
-      ) : null}
-      {open && Platform.OS === 'ios' ? (
-        <Button mode="text" onPress={() => setOpen(false)} style={styles.done}>
-          OK
-        </Button>
-      ) : null}
+      <DatePickerModal
+        locale={locale}
+        mode="single"
+        visible={open}
+        date={value}
+        onDismiss={() => setOpen(false)}
+        onConfirm={({ date }) => {
+          setOpen(false);
+          if (date) onChange(startOfDay(date));
+        }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   field: { marginBottom: spacing.md },
-  done: { alignSelf: 'flex-end' },
 });
