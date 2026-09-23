@@ -22,11 +22,7 @@ import {
 import { AppButton } from '@/src/ui/Form';
 import { OrderDataTable } from '@/src/ui/orders/OrderDataTable';
 import { OrderTotalsBar } from '@/src/ui/orders/OrderTotalsBar';
-import {
-  groupByLabel,
-  OrderTableCriteriaSheet,
-  sortKeyLabel,
-} from '@/src/ui/orders/OrderTableCriteriaSheet';
+import { groupByLabel, OrderTableCriteriaSheet } from '@/src/ui/orders/OrderTableCriteriaSheet';
 import { colors, spacing } from '@/src/theme/tokens';
 
 type Props = {
@@ -159,16 +155,6 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
       onClear: () => patchFilter({ deliveryDateFrom: undefined, deliveryDateTo: undefined }),
     });
   }
-  if (sortKey !== 'orderDate' || sortDirection !== 'desc') {
-    chips.push({
-      id: 'sort',
-      label: `${t('sortBy')}: ${sortKeyLabel(sortKey, t)} ${sortDirection === 'desc' ? t('sortDesc') : t('sortAsc')}`,
-      onClear: () => {
-        setSortKey('orderDate');
-        setSortDirection('desc');
-      },
-    });
-  }
   if (groupBy !== 'none' && !(view === 'order' && groupBy === 'product')) {
     chips.push({
       id: 'group',
@@ -211,10 +197,6 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
         onViewChange={onViewChange}
         filters={filters}
         onFiltersChange={patchFilter}
-        sortKey={sortKey}
-        onSortKeyChange={setSortKey}
-        sortDirection={sortDirection}
-        onSortDirectionChange={setSortDirection}
         groupBy={groupBy}
         onGroupByChange={setGroupBy}
         shops={shops}
@@ -231,6 +213,16 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
         <OrderDataTable
           view={view}
           groups={groups}
+          sortKey={sortKey}
+          sortDirection={sortDirection}
+          onSort={(key) => {
+            if (key === sortKey) {
+              setSortDirection((current) => (current === 'desc' ? 'asc' : 'desc'));
+              return;
+            }
+            setSortKey(key);
+            setSortDirection('desc');
+          }}
           distributorId={distributorId}
           onDraftDeleted={onDraftDeleted}
         />

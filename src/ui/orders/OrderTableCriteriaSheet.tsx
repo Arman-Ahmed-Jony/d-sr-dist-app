@@ -24,10 +24,6 @@ type Props = {
   onViewChange: (view: OrderTableView) => void;
   filters: OrderTableFilters;
   onFiltersChange: (patch: OrderTableFilters) => void;
-  sortKey: OrderTableSortKey;
-  onSortKeyChange: (key: OrderTableSortKey) => void;
-  sortDirection: 'asc' | 'desc';
-  onSortDirectionChange: (direction: 'asc' | 'desc') => void;
   groupBy: OrderTableGroupBy;
   onGroupByChange: (groupBy: OrderTableGroupBy) => void;
   shops: NamedOption[];
@@ -135,10 +131,6 @@ export function OrderTableCriteriaSheet({
   onViewChange,
   filters,
   onFiltersChange,
-  sortKey,
-  onSortKeyChange,
-  sortDirection,
-  onSortDirectionChange,
   groupBy,
   onGroupByChange,
   shops,
@@ -150,11 +142,6 @@ export function OrderTableCriteriaSheet({
   const selectedShop = shops.find((shop) => shop.id === filters.shopId);
   const selectedSr = srs.find((sr) => sr.id === filters.srId);
   const selectedProduct = products.find((product) => product.id === filters.productId);
-
-  const sortKeys: OrderTableSortKey[] =
-    view === 'order'
-      ? ['orderDate', 'deliveryDate', 'shop', 'sr', 'status', 'money', 'cases']
-      : ['orderDate', 'deliveryDate', 'shop', 'sr', 'product', 'status', 'money', 'cases', 'freePcs', 'lineTotal'];
 
   const groupKeys: OrderTableGroupBy[] =
     view === 'order'
@@ -265,34 +252,6 @@ export function OrderTableCriteriaSheet({
               anyLabel={t('anyDate')}
               clearLabel={t('clearDate')}
             />
-          </View>
-
-          <View style={styles.section}>
-            <Text variant="labelLarge" style={styles.sectionLabel}>
-              {t('sortBy')}
-            </Text>
-            <View style={styles.chipRow}>
-              {sortKeys.map((key) => (
-                <ChoiceChip
-                  key={key}
-                  label={sortKeyLabel(key, t)}
-                  active={sortKey === key}
-                  onPress={() => onSortKeyChange(key)}
-                />
-              ))}
-            </View>
-            <View style={styles.chipRow}>
-              <ChoiceChip
-                label={t('sortDesc')}
-                active={sortDirection === 'desc'}
-                onPress={() => onSortDirectionChange('desc')}
-              />
-              <ChoiceChip
-                label={t('sortAsc')}
-                active={sortDirection === 'asc'}
-                onPress={() => onSortDirectionChange('asc')}
-              />
-            </View>
           </View>
 
           <View style={styles.section}>

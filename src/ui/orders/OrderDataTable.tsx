@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { StatusChip } from '@/src/ui/StatusChip';
@@ -6,12 +6,14 @@ import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
 import type {
   OrderTableGroup,
   OrderTableRow,
+  OrderTableSortKey,
   OrderTableView,
 } from '@/src/domain/orderTable';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Column = {
   key: string;
+  sortKey?: OrderTableSortKey;
   label: string;
   width: number;
   value: (row: OrderTableRow) => string;
@@ -20,6 +22,9 @@ type Column = {
 type Props = {
   view: OrderTableView;
   groups: OrderTableGroup<OrderTableRow>[];
+  sortKey: OrderTableSortKey;
+  sortDirection: 'asc' | 'desc';
+  onSort: (key: OrderTableSortKey) => void;
   distributorId?: string;
   onDraftDeleted?: () => void;
 };
@@ -39,39 +44,80 @@ function cellStyle(width: number) {
   };
 }
 
-export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: Props) {
+export function OrderDataTable({
+  view,
+  groups,
+  sortKey,
+  sortDirection,
+  onSort,
+  distributorId,
+  onDraftDeleted,
+}: Props) {
   const { t } = useTranslation();
 
   const columns: Column[] =
     view === 'order'
       ? [
-          { key: 'shop', label: t('shop'), width: 160, value: (row) => row.shopName },
-          { key: 'sr', label: t('srName'), width: 120, value: (row) => row.srName },
+          { key: 'shop', sortKey: 'shop', label: t('shop'), width: 160, value: (row) => row.shopName },
+          { key: 'sr', sortKey: 'sr', label: t('srName'), width: 120, value: (row) => row.srName },
           {
             key: 'orderDate',
+            sortKey: 'orderDate',
             label: t('orderDate'),
             width: 120,
             value: (row) => row.orderDate.toLocaleDateString(),
           },
           {
             key: 'deliveryDate',
+            sortKey: 'deliveryDate',
             label: t('deliveryDate'),
             width: 120,
             value: (row) => row.deliveryDate.toLocaleDateString(),
           },
-          { key: 'status', label: t('status'), width: 150, value: (row) => row.status },
-          { key: 'cases', label: t('quantityCases'), width: 88, value: (row) => formatAmount(row.cases) },
-          { key: 'freePcs', label: t('freePcs'), width: 88, value: (row) => formatAmount(row.freePcs) },
-          { key: 'money', label: t('orderTotal'), width: 100, value: (row) => formatAmount(row.money) },
+          { key: 'status', sortKey: 'status', label: t('status'), width: 150, value: (row) => row.status },
+          {
+            key: 'cases',
+            sortKey: 'cases',
+            label: t('quantityCases'),
+            width: 88,
+            value: (row) => formatAmount(row.cases),
+          },
+          {
+            key: 'freePcs',
+            sortKey: 'freePcs',
+            label: t('freePcs'),
+            width: 88,
+            value: (row) => formatAmount(row.freePcs),
+          },
+          {
+            key: 'money',
+            sortKey: 'money',
+            label: t('orderTotal'),
+            width: 100,
+            value: (row) => formatAmount(row.money),
+          },
           { key: 'actions', label: '', width: 56, value: () => '' },
         ]
       : [
-          { key: 'shop', label: t('shop'), width: 160, value: (row) => row.shopName },
-          { key: 'sr', label: t('srName'), width: 120, value: (row) => row.srName },
-          { key: 'product', label: t('products'), width: 160, value: (row) => row.productName ?? '' },
-          { key: 'cases', label: t('quantityCases'), width: 88, value: (row) => formatAmount(row.cases) },
+          { key: 'shop', sortKey: 'shop', label: t('shop'), width: 160, value: (row) => row.shopName },
+          { key: 'sr', sortKey: 'sr', label: t('srName'), width: 120, value: (row) => row.srName },
+          {
+            key: 'product',
+            sortKey: 'product',
+            label: t('products'),
+            width: 160,
+            value: (row) => row.productName ?? '',
+          },
+          {
+            key: 'cases',
+            sortKey: 'cases',
+            label: t('quantityCases'),
+            width: 88,
+            value: (row) => formatAmount(row.cases),
+          },
           {
             key: 'freePcs',
+            sortKey: 'freePcs',
             label: t('freePcs'),
             width: 170,
             value: (row) => {
@@ -85,14 +131,21 @@ export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: 
             width: 100,
             value: (row) => formatAmount(row.discountAmount),
           },
-          { key: 'money', label: t('lineTotal'), width: 100, value: (row) => formatAmount(row.money) },
+          {
+            key: 'money',
+            sortKey: 'lineTotal',
+            label: t('lineTotal'),
+            width: 100,
+            value: (row) => formatAmount(row.money),
+          },
           {
             key: 'orderDate',
+            sortKey: 'orderDate',
             label: t('orderDate'),
             width: 120,
             value: (row) => row.orderDate.toLocaleDateString(),
           },
-          { key: 'status', label: t('status'), width: 150, value: (row) => row.status },
+          { key: 'status', sortKey: 'status', label: t('status'), width: 150, value: (row) => row.status },
         ];
 
   const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
@@ -106,13 +159,34 @@ export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: 
     >
       <View style={[styles.table, { width: tableWidth }]}>
         <View style={styles.headerRow}>
-          {columns.map((column) => (
-            <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
-              <Text variant="labelSmall" numberOfLines={1} style={styles.headerText}>
-                {column.label}
+          {columns.map((column) => {
+            const active = column.sortKey != null && column.sortKey === sortKey;
+            const arrow = active ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
+            const content = (
+              <Text
+                variant="labelSmall"
+                numberOfLines={1}
+                style={[styles.headerText, active && styles.headerTextActive]}
+              >
+                {`${column.label}${arrow}`}
               </Text>
-            </View>
-          ))}
+            );
+            return (
+              <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
+                {column.sortKey ? (
+                  <Pressable
+                    onPress={() => onSort(column.sortKey!)}
+                    accessibilityRole="button"
+                    accessibilityLabel={column.label}
+                  >
+                    {content}
+                  </Pressable>
+                ) : (
+                  content
+                )}
+              </View>
+            );
+          })}
         </View>
         {groups.map((group) => (
           <View key={group.key}>
@@ -193,6 +267,9 @@ const styles = StyleSheet.create({
   },
   headerText: {
     color: colors.textMuted,
+  },
+  headerTextActive: {
+    color: colors.primary,
   },
   groupRow: {
     paddingHorizontal: spacing.sm,

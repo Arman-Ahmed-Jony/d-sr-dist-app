@@ -1,4 +1,5 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { OrderTableTotals } from '@/src/domain/orderTable';
@@ -14,6 +15,7 @@ function formatAmount(value: number): string {
 
 export function OrderTotalsBar({ totals }: Props) {
   const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
 
   return (
     <Card mode="outlined" style={styles.wrap}>
@@ -29,14 +31,67 @@ export function OrderTotalsBar({ totals }: Props) {
         </View>
         {totals.byProduct.length > 0 ? (
           <View style={styles.products}>
-            <Text variant="bodySmall" style={styles.productTitle}>
-              {t('productTotals')}
-            </Text>
-            {totals.byProduct.map((product) => (
-              <Text key={product.productId} variant="bodySmall" style={styles.productLine}>
-                {`${product.productName}: ${t('totalCases')} ${formatAmount(product.cases)} · ${t('totalFreePcs')} ${formatAmount(product.freePcs)} · ${t('totalMoney')} ${formatAmount(product.money)}`}
+            <Pressable
+              onPress={() => setOpen((current) => !current)}
+              style={styles.toggle}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: open }}
+            >
+              <Text variant="labelLarge" style={styles.toggleLabel}>
+                {t('productTotals')}
               </Text>
-            ))}
+              <Text variant="titleMedium" style={styles.toggleArrow}>
+                {open ? '▾' : '▸'}
+              </Text>
+            </Pressable>
+            {open ? (
+              <View style={styles.table}>
+                <View style={styles.tableRow}>
+                  <Text variant="labelSmall" style={[styles.productCell, styles.headerText]}>
+                    {t('products')}
+                  </Text>
+                  <Text variant="labelSmall" style={[styles.numCell, styles.headerText]}>
+                    {t('totalCases')}
+                  </Text>
+                  <Text variant="labelSmall" style={[styles.numCell, styles.headerText]}>
+                    {t('totalFreePcs')}
+                  </Text>
+                  <Text variant="labelSmall" style={[styles.numCell, styles.headerText]}>
+                    {t('totalMoney')}
+                  </Text>
+                </View>
+                {totals.byProduct.map((product) => (
+                  <View key={product.productId} style={styles.tableRow}>
+                    <Text variant="bodySmall" style={styles.productCell} numberOfLines={2}>
+                      {product.productName}
+                    </Text>
+                    <Text variant="bodySmall" style={styles.numCell}>
+                      {formatAmount(product.cases)}
+                    </Text>
+                    <Text variant="bodySmall" style={styles.numCell}>
+                      {formatAmount(product.freePcs)}
+                    </Text>
+                    <Text variant="bodySmall" style={styles.numCell}>
+                      {formatAmount(product.money)}
+                    </Text>
+                  </View>
+                ))}
+                <View style={[styles.tableRow, styles.footerRow]}>
+                  <Text variant="labelLarge" style={styles.productCell}>
+                    {t('totals')}
+                  </Text>
+                  <Text variant="labelLarge" style={styles.numCell}>
+                    {formatAmount(totals.cases)}
+                  </Text>
+                  <Text variant="labelLarge" style={styles.numCell}>
+                    {formatAmount(totals.freePcs)}
+                  </Text>
+                  <Text variant="labelLarge" style={styles.numCell}>
+                    {formatAmount(totals.money)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </View>
         ) : null}
       </Card.Content>
@@ -61,7 +116,33 @@ const styles = StyleSheet.create({
   grand: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   stat: { minWidth: 88 },
   statLabel: { color: colors.textMuted },
-  products: { marginTop: spacing.md, gap: spacing.xs },
-  productTitle: { color: colors.textMuted, marginBottom: spacing.xs },
-  productLine: { flexShrink: 0 },
+  products: { marginTop: spacing.md },
+  toggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.xs,
+  },
+  toggleLabel: { color: colors.text },
+  toggleArrow: { color: colors.textMuted },
+  table: {
+    marginTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    gap: spacing.sm,
+  },
+  footerRow: {
+    borderBottomWidth: 0,
+    paddingTop: spacing.sm,
+  },
+  productCell: { flex: 1.4 },
+  numCell: { flex: 1, textAlign: 'right' },
+  headerText: { color: colors.textMuted },
 });
