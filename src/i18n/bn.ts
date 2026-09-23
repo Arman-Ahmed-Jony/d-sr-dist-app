@@ -74,6 +74,7 @@ export const bn = {
   adjustment: 'ছাড় / ফ্রি',
   discountAmount: 'নগদ ছাড়',
   freePcs: 'ফ্রি পিস',
+  freeProduct: 'ফ্রি পণ্য',
   lineTotal: 'লাইন মোট',
   orderTotal: 'মোট',
   searchSelectShop: 'দোকান খুঁজুন',

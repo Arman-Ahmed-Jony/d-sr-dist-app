@@ -54,12 +54,14 @@ export function OrderDataTable({ view, groups }: Props) {
           { key: 'product', label: t('products'), width: 150, value: (row) => row.productName ?? '' },
           { key: 'cases', label: t('quantityCases'), width: 80, value: (row) => formatAmount(row.cases) },
           {
-            key: 'pcs',
-            label: t('quantityPcs'),
-            width: 70,
-            value: (row) => formatAmount(row.quantityPcs),
+            key: 'freePcs',
+            label: t('freePcs'),
+            width: 160,
+            value: (row) => {
+              const amount = formatAmount(row.freePcs);
+              return row.freeProductName ? `${amount} · ${row.freeProductName}` : amount;
+            },
           },
-          { key: 'freePcs', label: t('freePcs'), width: 80, value: (row) => formatAmount(row.freePcs) },
           {
             key: 'discount',
             label: t('discountAmount'),

@@ -54,6 +54,8 @@ export interface OrderLine {
   adjustmentMode: LineAdjustmentMode;
   discountAmount: number;
   freePcs: number;
+  freeProductId: string;
+  freeProductName: string;
   lineTotal: number;
 }
 

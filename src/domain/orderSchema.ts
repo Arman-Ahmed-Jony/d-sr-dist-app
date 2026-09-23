@@ -2,13 +2,19 @@ import { z } from 'zod';
 
 const nonNegNumber = z.number({ error: 'Must be a number' }).finite().min(0);
 
-export const orderLineInputSchema = z.object({
-  productId: z.string().min(1, 'Product is required'),
-  quantityCases: nonNegNumber.gt(0, 'Cases must be greater than 0'),
-  quantityPcs: nonNegNumber,
-  adjustmentMode: z.enum(['discountAmount', 'freePcs']),
-  adjustmentValue: nonNegNumber,
-});
+export const orderLineInputSchema = z
+  .object({
+    productId: z.string().min(1, 'Product is required'),
+    quantityCases: nonNegNumber.gt(0, 'Cases must be greater than 0'),
+    quantityPcs: nonNegNumber,
+    adjustmentMode: z.enum(['discountAmount', 'freePcs']),
+    adjustmentValue: nonNegNumber,
+    freeProductId: z.string().optional(),
+  })
+  .refine((line) => line.adjustmentMode !== 'freePcs' || Boolean(line.freeProductId?.trim()), {
+    message: 'Free product is required',
+    path: ['freeProductId'],
+  });
 
 export const orderFormSchema = z
   .object({

@@ -42,6 +42,7 @@ export type OrderTableRow = {
   cases: number;
   quantityPcs: number;
   freePcs: number;
+  freeProductName?: string;
   discountAmount: number;
   money: number;
 };
@@ -158,6 +159,7 @@ export function toLineRows(orders: Order[], productId?: string): OrderTableRow[]
         cases: Number.isFinite(line.quantityCases) ? line.quantityCases : 0,
         quantityPcs: Number.isFinite(line.quantityPcs) ? line.quantityPcs : 0,
         freePcs: Number.isFinite(line.freePcs) ? line.freePcs : 0,
+        freeProductName: line.freeProductName || undefined,
         discountAmount: Number.isFinite(line.discountAmount) ? line.discountAmount : 0,
         money: Number.isFinite(line.lineTotal) ? line.lineTotal : 0,
       });
@@ -256,6 +258,8 @@ export function totalsFromRows(rows: OrderTableRow[]): OrderTableTotals {
       adjustmentMode: 'freePcs',
       discountAmount: row.discountAmount,
       freePcs: row.freePcs,
+      freeProductId: '',
+      freeProductName: row.freeProductName ?? '',
       lineTotal: row.money,
     };
     return line;

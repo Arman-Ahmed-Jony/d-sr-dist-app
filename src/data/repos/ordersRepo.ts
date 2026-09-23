@@ -23,6 +23,7 @@ export type CreateOrderLineInput = {
   quantityPcs: number;
   adjustmentMode: LineAdjustmentMode;
   adjustmentValue: number;
+  freeProductId?: string;
 };
 
 export type CreateOrderShopInput =
@@ -63,6 +64,20 @@ async function resolveOrderShop(
   return { shopId: shop.id, shopName: shop.name };
 }
 
+async function requireActiveProduct(productId: string, distributorId: string) {
+  const product = await getProduct(productId);
+  if (!product) {
+    throw new Error(`Product not found: ${productId}`);
+  }
+  if (product.distributorId !== distributorId) {
+    throw new Error(`Product ${productId} belongs to another distributor.`);
+  }
+  if (!product.active) {
+    throw new Error(`Product is inactive: ${product.name}`);
+  }
+  return product;
+}
+
 async function snapshotOrderLines(
   distributorId: string,
   inputLines: CreateOrderLineInput[],
@@ -85,22 +100,23 @@ async function snapshotOrderLines(
       throw new Error('Each line needs a positive quantity.');
     }
 
-    const product = await getProduct(line.productId);
-    if (!product) {
-      throw new Error(`Product not found: ${line.productId}`);
-    }
-    if (product.distributorId !== distributorId) {
-      throw new Error(`Product ${line.productId} belongs to another distributor.`);
-    }
-    if (!product.active) {
-      throw new Error(`Product is inactive: ${product.name}`);
-    }
+    const product = await requireActiveProduct(line.productId, distributorId);
 
     const adjustmentMode: LineAdjustmentMode =
       line.adjustmentMode === 'freePcs' ? 'freePcs' : 'discountAmount';
     const adjustmentValue = Number.isFinite(line.adjustmentValue) ? Math.max(0, line.adjustmentValue) : 0;
     const quantityPcs = Number.isFinite(line.quantityPcs) ? Math.max(0, line.quantityPcs) : 0;
     const pricePerCase = product.pricePerCase;
+
+    let freeProductId = '';
+    let freeProductName = '';
+    if (adjustmentMode === 'freePcs') {
+      const freeId = line.freeProductId?.trim() || product.id;
+      const freeProduct =
+        freeId === product.id ? product : await requireActiveProduct(freeId, distributorId);
+      freeProductId = freeProduct.id;
+      freeProductName = freeProduct.name;
+    }
 
     lines.push({
       productId: product.id,
@@ -111,6 +127,8 @@ async function snapshotOrderLines(
       adjustmentMode,
       discountAmount: adjustmentMode === 'discountAmount' ? adjustmentValue : 0,
       freePcs: adjustmentMode === 'freePcs' ? adjustmentValue : 0,
+      freeProductId,
+      freeProductName,
       lineTotal: computeLineTotal({
         pricePerCase,
         quantityCases: line.quantityCases,
@@ -250,15 +268,23 @@ export function mapOrder(id: string, data: Record<string, unknown>): Order {
     const pricePerCase = Number(line.pricePerCase ?? 0);
     const quantityCases = Number(line.quantityCases ?? 0);
     const storedTotal = line.lineTotal;
+    const productId = String(line.productId ?? '');
+    const productName = String(line.productName ?? '');
+    const storedFreeProductId = line.freeProductId ? String(line.freeProductId) : '';
+    const storedFreeProductName = line.freeProductName ? String(line.freeProductName) : '';
     return {
-      productId: String(line.productId ?? ''),
-      productName: String(line.productName ?? ''),
+      productId,
+      productName,
       pricePerCase,
       quantityCases,
       quantityPcs: Number(line.quantityPcs ?? 0),
       adjustmentMode,
       discountAmount,
       freePcs,
+      freeProductId:
+        storedFreeProductId || (adjustmentMode === 'freePcs' ? productId : ''),
+      freeProductName:
+        storedFreeProductName || (adjustmentMode === 'freePcs' ? productName : ''),
       lineTotal:
         storedTotal === undefined
           ? computeLineTotal({

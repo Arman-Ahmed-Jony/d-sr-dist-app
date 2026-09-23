@@ -77,6 +77,7 @@ export const en: Record<TranslationKey, string> = {
   adjustment: 'Discount / free',
   discountAmount: 'Cash discount',
   freePcs: 'Free pcs',
+  freeProduct: 'Free product',
   lineTotal: 'Line total',
   orderTotal: 'Total',
   searchSelectShop: 'Search shops',

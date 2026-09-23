@@ -48,7 +48,8 @@ service cloud.firestore {
     function orderLineValid(line) {
       return line.keys().hasAll([
           'productId', 'productName', 'pricePerCase', 'quantityCases',
-          'quantityPcs', 'adjustmentMode', 'discountAmount', 'freePcs', 'lineTotal'
+          'quantityPcs', 'adjustmentMode', 'discountAmount', 'freePcs',
+          'freeProductId', 'freeProductName', 'lineTotal'
         ])
         && line.productId is string
         && line.productName is string
@@ -63,6 +64,8 @@ service cloud.firestore {
         && line.discountAmount >= 0
         && line.freePcs is number
         && line.freePcs >= 0
+        && line.freeProductId is string
+        && line.freeProductName is string
         && line.lineTotal is number
         && line.lineTotal >= 0;
     }

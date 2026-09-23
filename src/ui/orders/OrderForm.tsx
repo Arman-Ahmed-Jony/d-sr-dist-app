@@ -27,9 +27,9 @@ type DraftLine = {
   key: string;
   productId: string;
   quantityCases: string;
-  quantityPcs: string;
   adjustmentMode: LineAdjustmentMode;
   adjustmentValue: string;
+  freeProductId: string;
 };
 
 function todayDate(): Date {
@@ -48,9 +48,9 @@ function newLine(): DraftLine {
     key: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     productId: '',
     quantityCases: '',
-    quantityPcs: '',
     adjustmentMode: 'discountAmount',
     adjustmentValue: '',
+    freeProductId: '',
   };
 }
 
@@ -65,11 +65,14 @@ function linesFromOrder(order: Order): DraftLine[] {
     key: `${line.productId}-${Math.random().toString(36).slice(2, 6)}`,
     productId: line.productId,
     quantityCases: String(line.quantityCases),
-    quantityPcs: String(line.quantityPcs ?? ''),
     adjustmentMode: line.adjustmentMode,
     adjustmentValue: String(
       line.adjustmentMode === 'freePcs' ? line.freePcs : line.discountAmount,
     ),
+    freeProductId:
+      line.adjustmentMode === 'freePcs'
+        ? line.freeProductId || line.productId
+        : '',
   }));
 }
 
@@ -155,9 +158,10 @@ export function OrderForm({ order }: Props) {
     const parsedLines = lines.map((line) => ({
       productId: line.productId,
       quantityCases: parseNonNeg(line.quantityCases),
-      quantityPcs: parseNonNeg(line.quantityPcs),
+      quantityPcs: 0,
       adjustmentMode: line.adjustmentMode,
       adjustmentValue: parseNonNeg(line.adjustmentValue),
+      freeProductId: line.adjustmentMode === 'freePcs' ? line.freeProductId : '',
     }));
 
     const result = orderFormSchema.safeParse({
@@ -174,7 +178,9 @@ export function OrderForm({ order }: Props) {
     if (!result.success) {
       const issue = result.error.issues[0];
       if (issue?.path[0] === 'shopId') setError(t('errorShopRequired'));
-      else if (issue?.path.includes('productId')) setError(t('errorProductRequired'));
+      else if (issue?.path.includes('freeProductId') || issue?.path.includes('productId')) {
+        setError(t('errorProductRequired'));
+      }
       else if (issue?.path.includes('quantityCases')) setError(t('errorCasesRequired'));
       else if (issue?.path[0] === 'deliveryDate') setError(t('errorDeliveryDate'));
       else if (issue?.message.includes('Duplicate')) setError(t('errorDuplicateProduct'));
@@ -312,6 +318,7 @@ export function OrderForm({ order }: Props) {
 
         {lines.map((line, index) => {
           const product = productsById.get(line.productId);
+          const freeProduct = productsById.get(line.freeProductId || line.productId);
           const usedIds = new Set(
             lines.filter((other) => other.key !== line.key && other.productId).map((other) => other.productId),
           );
@@ -339,29 +346,24 @@ export function OrderForm({ order }: Props) {
                   label: item.name,
                   detail: `${t('pricePerCase')}: ${item.pricePerCase}`,
                 }))}
-                onSelect={(option) => updateLine(line.key, { productId: option.id })}
+                onSelect={(option) => {
+                  const followDefault =
+                    !line.freeProductId || line.freeProductId === line.productId;
+                  updateLine(line.key, {
+                    productId: option.id,
+                    freeProductId: followDefault ? option.id : line.freeProductId,
+                  });
+                }}
               />
               <Text style={styles.meta}>
                 {t('pricePerCase')}: {product?.pricePerCase ?? '—'}
               </Text>
-              <View style={styles.row}>
-                <View style={styles.half}>
-                  <AppInput
-                    label={t('quantityCases')}
-                    value={line.quantityCases}
-                    onChangeText={(text) => updateLine(line.key, { quantityCases: text })}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-                <View style={styles.half}>
-                  <AppInput
-                    label={t('quantityPcs')}
-                    value={line.quantityPcs}
-                    onChangeText={(text) => updateLine(line.key, { quantityPcs: text })}
-                    keyboardType="decimal-pad"
-                  />
-                </View>
-              </View>
+              <AppInput
+                label={t('quantityCases')}
+                value={line.quantityCases}
+                onChangeText={(text) => updateLine(line.key, { quantityCases: text })}
+                keyboardType="decimal-pad"
+              />
 
               <View style={styles.toggleRow}>
                 <Pressable
@@ -381,7 +383,12 @@ export function OrderForm({ order }: Props) {
                   </Text>
                 </Pressable>
                 <Pressable
-                  onPress={() => updateLine(line.key, { adjustmentMode: 'freePcs' })}
+                  onPress={() =>
+                    updateLine(line.key, {
+                      adjustmentMode: 'freePcs',
+                      freeProductId: line.freeProductId || line.productId,
+                    })
+                  }
                   style={[styles.toggle, line.adjustmentMode === 'freePcs' && styles.toggleActive]}
                 >
                   <Text
@@ -394,6 +401,28 @@ export function OrderForm({ order }: Props) {
                   </Text>
                 </Pressable>
               </View>
+
+              {line.adjustmentMode === 'freePcs' ? (
+                <SearchSelect
+                  label={t('freeProduct')}
+                  placeholder={t('searchSelectProduct')}
+                  value={
+                    freeProduct
+                      ? {
+                          id: freeProduct.id,
+                          label: freeProduct.name,
+                          detail: `${t('pricePerCase')}: ${freeProduct.pricePerCase}`,
+                        }
+                      : null
+                  }
+                  options={products.map((item) => ({
+                    id: item.id,
+                    label: item.name,
+                    detail: `${t('pricePerCase')}: ${item.pricePerCase}`,
+                  }))}
+                  onSelect={(option) => updateLine(line.key, { freeProductId: option.id })}
+                />
+              ) : null}
 
               <AppInput
                 label={
@@ -478,8 +507,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   lineTitle: { ...typography.label, color: colors.primary, marginBottom: spacing.sm },
-  row: { flexDirection: 'row', gap: spacing.sm },
-  half: { flex: 1 },
   toggleRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   toggle: {
     flex: 1,
