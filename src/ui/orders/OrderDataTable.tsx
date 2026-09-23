@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { DataTable, Text } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { StatusChip } from '@/src/ui/StatusChip';
 import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
@@ -8,7 +8,7 @@ import type {
   OrderTableRow,
   OrderTableView,
 } from '@/src/domain/orderTable';
-import { colors, spacing } from '@/src/theme/tokens';
+import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Column = {
   key: string;
@@ -28,12 +28,16 @@ function formatAmount(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
 
-const cellStyle = (width: number) => ({
-  width,
-  flexGrow: 0,
-  flexShrink: 0,
-  maxWidth: width,
-});
+function cellStyle(width: number) {
+  return {
+    width,
+    minWidth: width,
+    maxWidth: width,
+    flexBasis: width,
+    flexGrow: 0,
+    flexShrink: 0,
+  };
+}
 
 export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: Props) {
   const { t } = useTranslation();
@@ -41,35 +45,35 @@ export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: 
   const columns: Column[] =
     view === 'order'
       ? [
-          { key: 'shop', label: t('shop'), width: 150, value: (row) => row.shopName },
-          { key: 'sr', label: t('srName'), width: 110, value: (row) => row.srName },
+          { key: 'shop', label: t('shop'), width: 160, value: (row) => row.shopName },
+          { key: 'sr', label: t('srName'), width: 120, value: (row) => row.srName },
           {
             key: 'orderDate',
             label: t('orderDate'),
-            width: 110,
+            width: 120,
             value: (row) => row.orderDate.toLocaleDateString(),
           },
           {
             key: 'deliveryDate',
             label: t('deliveryDate'),
-            width: 110,
+            width: 120,
             value: (row) => row.deliveryDate.toLocaleDateString(),
           },
-          { key: 'status', label: t('status'), width: 120, value: (row) => row.status },
-          { key: 'cases', label: t('quantityCases'), width: 80, value: (row) => formatAmount(row.cases) },
-          { key: 'freePcs', label: t('freePcs'), width: 80, value: (row) => formatAmount(row.freePcs) },
-          { key: 'money', label: t('orderTotal'), width: 90, value: (row) => formatAmount(row.money) },
+          { key: 'status', label: t('status'), width: 150, value: (row) => row.status },
+          { key: 'cases', label: t('quantityCases'), width: 88, value: (row) => formatAmount(row.cases) },
+          { key: 'freePcs', label: t('freePcs'), width: 88, value: (row) => formatAmount(row.freePcs) },
+          { key: 'money', label: t('orderTotal'), width: 100, value: (row) => formatAmount(row.money) },
           { key: 'actions', label: '', width: 56, value: () => '' },
         ]
       : [
-          { key: 'shop', label: t('shop'), width: 150, value: (row) => row.shopName },
-          { key: 'sr', label: t('srName'), width: 110, value: (row) => row.srName },
-          { key: 'product', label: t('products'), width: 150, value: (row) => row.productName ?? '' },
-          { key: 'cases', label: t('quantityCases'), width: 80, value: (row) => formatAmount(row.cases) },
+          { key: 'shop', label: t('shop'), width: 160, value: (row) => row.shopName },
+          { key: 'sr', label: t('srName'), width: 120, value: (row) => row.srName },
+          { key: 'product', label: t('products'), width: 160, value: (row) => row.productName ?? '' },
+          { key: 'cases', label: t('quantityCases'), width: 88, value: (row) => formatAmount(row.cases) },
           {
             key: 'freePcs',
             label: t('freePcs'),
-            width: 160,
+            width: 170,
             value: (row) => {
               const amount = formatAmount(row.freePcs);
               return row.freeProductName ? `${amount} · ${row.freeProductName}` : amount;
@@ -78,49 +82,54 @@ export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: 
           {
             key: 'discount',
             label: t('discountAmount'),
-            width: 90,
+            width: 100,
             value: (row) => formatAmount(row.discountAmount),
           },
-          { key: 'money', label: t('lineTotal'), width: 90, value: (row) => formatAmount(row.money) },
+          { key: 'money', label: t('lineTotal'), width: 100, value: (row) => formatAmount(row.money) },
           {
             key: 'orderDate',
             label: t('orderDate'),
-            width: 110,
+            width: 120,
             value: (row) => row.orderDate.toLocaleDateString(),
           },
-          { key: 'status', label: t('status'), width: 120, value: (row) => row.status },
+          { key: 'status', label: t('status'), width: 150, value: (row) => row.status },
         ];
 
   const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
 
   return (
-    <ScrollView horizontal style={styles.horizontal}>
-      <DataTable style={[styles.table, { width: tableWidth }]}>
-        <DataTable.Header>
+    <ScrollView
+      horizontal
+      nestedScrollEnabled
+      style={styles.horizontal}
+      contentContainerStyle={{ width: tableWidth }}
+    >
+      <View style={[styles.table, { width: tableWidth }]}>
+        <View style={styles.headerRow}>
           {columns.map((column) => (
-            <DataTable.Title key={column.key} style={cellStyle(column.width)}>
-              {column.label}
-            </DataTable.Title>
+            <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
+              <Text variant="labelSmall" numberOfLines={1} style={styles.headerText}>
+                {column.label}
+              </Text>
+            </View>
           ))}
-        </DataTable.Header>
+        </View>
         {groups.map((group) => (
           <View key={group.key}>
             {group.label ? (
-              <View style={[styles.groupRow, { width: tableWidth }]}>
+              <View style={styles.groupRow}>
                 <Text variant="labelLarge" style={styles.groupLabel}>
                   {group.label}
                 </Text>
                 <Text variant="bodySmall" style={styles.groupMeta}>
-                  {t('totalCases')} {formatAmount(group.totals.cases)} · {t('totalFreePcs')}{' '}
-                  {formatAmount(group.totals.freePcs)} · {t('totalMoney')}{' '}
-                  {formatAmount(group.totals.money)}
+                  {`${t('totalCases')} ${formatAmount(group.totals.cases)} · ${t('totalFreePcs')} ${formatAmount(group.totals.freePcs)} · ${t('totalMoney')} ${formatAmount(group.totals.money)}`}
                 </Text>
               </View>
             ) : null}
             {group.rows.map((row) => (
-              <DataTable.Row key={row.id}>
+              <View key={row.id} style={styles.bodyRow}>
                 {columns.map((column) => (
-                  <DataTable.Cell key={column.key} style={cellStyle(column.width)}>
+                  <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
                     {column.key === 'status' ? (
                       <StatusChip status={row.status} pending={row.order.pendingSync} />
                     ) : column.key === 'actions' ? (
@@ -136,26 +145,61 @@ export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: 
                         />
                       ) : null
                     ) : (
-                      column.value(row)
+                      <Text variant="bodySmall" numberOfLines={2}>
+                        {column.value(row)}
+                      </Text>
                     )}
-                  </DataTable.Cell>
+                  </View>
                 ))}
-              </DataTable.Row>
+              </View>
             ))}
           </View>
         ))}
-      </DataTable>
+      </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  horizontal: { marginBottom: spacing.md },
-  table: { backgroundColor: colors.surface },
+  horizontal: {
+    marginBottom: spacing.md,
+    alignSelf: 'stretch',
+  },
+  table: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surfaceMuted,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    minHeight: 44,
+  },
+  bodyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+    minHeight: 56,
+  },
+  cell: {
+    paddingHorizontal: spacing.sm,
+    justifyContent: 'center',
+  },
+  headerText: {
+    color: colors.textMuted,
+  },
   groupRow: {
-    backgroundColor: colors.background,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   groupLabel: { color: colors.primary },
   groupMeta: { color: colors.textMuted, marginTop: 2 },

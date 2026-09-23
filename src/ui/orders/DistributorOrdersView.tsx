@@ -178,7 +178,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   }
 
   return (
-    <View>
+    <View style={styles.wrap}>
       <AppButton
         title={t('tableFilters')}
         variant="ghost"
@@ -240,6 +240,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
 }
 
 const styles = StyleSheet.create({
+  wrap: { alignSelf: 'stretch' },
   filterBtn: { marginBottom: spacing.sm, alignSelf: 'flex-start' },
   chipRow: {
     flexDirection: 'row',

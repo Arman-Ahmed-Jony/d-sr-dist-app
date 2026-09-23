@@ -33,10 +33,8 @@ export function OrderTotalsBar({ totals }: Props) {
               {t('productTotals')}
             </Text>
             {totals.byProduct.map((product) => (
-              <Text key={product.productId} variant="bodySmall">
-                {product.productName}: {t('totalCases')} {formatAmount(product.cases)} ·{' '}
-                {t('totalFreePcs')} {formatAmount(product.freePcs)} · {t('totalMoney')}{' '}
-                {formatAmount(product.money)}
+              <Text key={product.productId} variant="bodySmall" style={styles.productLine}>
+                {`${product.productName}: ${t('totalCases')} ${formatAmount(product.cases)} · ${t('totalFreePcs')} ${formatAmount(product.freePcs)} · ${t('totalMoney')} ${formatAmount(product.money)}`}
               </Text>
             ))}
           </View>
@@ -58,11 +56,12 @@ function Stat({ label, value }: { label: string; value: string }) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: spacing.md },
+  wrap: { marginBottom: spacing.md, flexShrink: 0 },
   title: { color: colors.primary, marginBottom: spacing.sm },
   grand: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   stat: { minWidth: 88 },
   statLabel: { color: colors.textMuted },
   products: { marginTop: spacing.md, gap: spacing.xs },
   productTitle: { color: colors.textMuted, marginBottom: spacing.xs },
+  productLine: { flexShrink: 0 },
 });
