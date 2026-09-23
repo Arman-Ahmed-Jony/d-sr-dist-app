@@ -228,6 +228,14 @@ export async function listOrdersBySr(srId: string, distributorId: string): Promi
   return rows;
 }
 
+export async function listOrdersByDistributor(distributorId: string): Promise<Order[]> {
+  const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
+  const snap = await getDocs(q);
+  const rows = snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>));
+  rows.sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
+  return rows;
+}
+
 function asAdjustmentMode(value: unknown): LineAdjustmentMode {
   return value === 'freePcs' ? 'freePcs' : 'discountAmount';
 }
