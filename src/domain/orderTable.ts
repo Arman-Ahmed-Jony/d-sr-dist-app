@@ -74,6 +74,81 @@ export function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
+export function addDays(date: Date, days: number): Date {
+  const next = startOfDay(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+export type OrderQuickFilter = 'todayDelivery' | 'nextDelivery' | 'todayOrders' | 'previousOrders';
+
+export const ORDER_QUICK_FILTERS: OrderQuickFilter[] = [
+  'todayDelivery',
+  'nextDelivery',
+  'todayOrders',
+  'previousOrders',
+];
+
+function sameDay(left?: Date, right?: Date): boolean {
+  if (!left && !right) return true;
+  if (!left || !right) return false;
+  return startOfDay(left).getTime() === startOfDay(right).getTime();
+}
+
+export function filtersForQuickFilter(
+  id: OrderQuickFilter,
+  now: Date = new Date(),
+): Pick<OrderTableFilters, 'orderDateFrom' | 'orderDateTo' | 'deliveryDateFrom' | 'deliveryDateTo'> {
+  const today = startOfDay(now);
+  switch (id) {
+    case 'todayDelivery':
+      return {
+        deliveryDateFrom: today,
+        deliveryDateTo: today,
+        orderDateFrom: undefined,
+        orderDateTo: undefined,
+      };
+    case 'nextDelivery':
+      return {
+        deliveryDateFrom: addDays(today, 1),
+        deliveryDateTo: undefined,
+        orderDateFrom: undefined,
+        orderDateTo: undefined,
+      };
+    case 'todayOrders':
+      return {
+        orderDateFrom: today,
+        orderDateTo: today,
+        deliveryDateFrom: undefined,
+        deliveryDateTo: undefined,
+      };
+    case 'previousOrders':
+      return {
+        orderDateFrom: undefined,
+        orderDateTo: addDays(today, -1),
+        deliveryDateFrom: undefined,
+        deliveryDateTo: undefined,
+      };
+  }
+}
+
+export function activeQuickFilter(
+  filters: OrderTableFilters,
+  now: Date = new Date(),
+): OrderQuickFilter | null {
+  return (
+    ORDER_QUICK_FILTERS.find((id) => {
+      const preset = filtersForQuickFilter(id, now);
+      return (
+        sameDay(filters.orderDateFrom, preset.orderDateFrom) &&
+        sameDay(filters.orderDateTo, preset.orderDateTo) &&
+        sameDay(filters.deliveryDateFrom, preset.deliveryDateFrom) &&
+        sameDay(filters.deliveryDateTo, preset.deliveryDateTo)
+      );
+    }) ?? null
+  );
+}
+
 export function dateKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');

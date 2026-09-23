@@ -135,6 +135,12 @@ export const bn = {
   searchSelectSr: 'এসআর খুঁজুন',
   tableFilters: 'ফিল্টার',
   done: 'হয়ে গেছে',
+  quickFilters: 'দ্রুত ফিল্টার',
+  quickTodayDelivery: 'আজকের ডেলিভারি',
+  quickNextDelivery: 'পরের দিনের ডেলিভারি',
+  quickTodayOrders: 'আজকের অর্ডার',
+  quickPreviousOrders: 'আগের দিনের অর্ডার',
+  totalValue: 'মোট মূল্য',
 } as const;
 
 export type TranslationKey = keyof typeof bn;

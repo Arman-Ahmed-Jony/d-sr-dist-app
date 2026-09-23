@@ -2,12 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, Modal, Portal, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { OrderStatus } from '@/src/domain/types';
-import type {
-  OrderTableFilters,
-  OrderTableGroupBy,
-  OrderTableSortKey,
-  OrderTableView,
-} from '@/src/domain/orderTable';
+import type { OrderTableFilters, OrderTableGroupBy, OrderTableSortKey } from '@/src/domain/orderTable';
 import { AppButton } from '@/src/ui/Form';
 import { SearchSelect } from '@/src/ui/SearchSelect';
 import { DateField } from '@/src/ui/DateField';
@@ -20,12 +15,8 @@ type NamedOption = { id: string; label: string };
 type Props = {
   visible: boolean;
   onClose: () => void;
-  view: OrderTableView;
-  onViewChange: (view: OrderTableView) => void;
   filters: OrderTableFilters;
   onFiltersChange: (patch: OrderTableFilters) => void;
-  groupBy: OrderTableGroupBy;
-  onGroupByChange: (groupBy: OrderTableGroupBy) => void;
   shops: NamedOption[];
   srs: NamedOption[];
   products: NamedOption[];
@@ -127,12 +118,8 @@ function OptionalDate({
 export function OrderTableCriteriaSheet({
   visible,
   onClose,
-  view,
-  onViewChange,
   filters,
   onFiltersChange,
-  groupBy,
-  onGroupByChange,
   shops,
   srs,
   products,
@@ -143,11 +130,6 @@ export function OrderTableCriteriaSheet({
   const selectedSr = srs.find((sr) => sr.id === filters.srId);
   const selectedProduct = products.find((product) => product.id === filters.productId);
 
-  const groupKeys: OrderTableGroupBy[] =
-    view === 'order'
-      ? ['none', 'shop', 'sr', 'status', 'orderDate']
-      : ['none', 'shop', 'sr', 'status', 'orderDate', 'product'];
-
   return (
     <Portal>
       <Modal visible={visible} onDismiss={onClose} contentContainerStyle={styles.panel}>
@@ -155,24 +137,6 @@ export function OrderTableCriteriaSheet({
           <Text variant="titleLarge" style={styles.title}>
             {t('tableFilters')}
           </Text>
-
-          <View style={styles.section}>
-            <Text variant="labelLarge" style={styles.sectionLabel}>
-              {t('viewMode')}
-            </Text>
-            <View style={styles.chipRow}>
-              <ChoiceChip
-                label={t('viewOrders')}
-                active={view === 'order'}
-                onPress={() => onViewChange('order')}
-              />
-              <ChoiceChip
-                label={t('viewLines')}
-                active={view === 'line'}
-                onPress={() => onViewChange('line')}
-              />
-            </View>
-          </View>
 
           <SearchSelect
             label={t('shop')}
@@ -252,25 +216,6 @@ export function OrderTableCriteriaSheet({
               anyLabel={t('anyDate')}
               clearLabel={t('clearDate')}
             />
-          </View>
-
-          <View style={styles.section}>
-            <Text variant="labelLarge" style={styles.sectionLabel}>
-              {t('groupBy')}
-            </Text>
-            <View style={styles.chipRow}>
-              {groupKeys.map((key) => (
-                <ChoiceChip
-                  key={key}
-                  label={groupByLabel(key, t)}
-                  active={
-                    groupBy === key ||
-                    (view === 'order' && key === 'none' && groupBy === 'product')
-                  }
-                  onPress={() => onGroupByChange(key)}
-                />
-              ))}
-            </View>
           </View>
 
           <AppButton title={t('done')} onPress={onClose} />

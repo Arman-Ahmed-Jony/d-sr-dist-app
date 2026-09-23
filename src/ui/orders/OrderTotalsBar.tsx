@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Card, Text } from 'react-native-paper';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import type { OrderTableTotals } from '@/src/domain/orderTable';
 import { colors, spacing } from '@/src/theme/tokens';
@@ -10,7 +11,13 @@ type Props = {
 };
 
 function formatAmount(value: number): string {
-  return Number.isInteger(value) ? String(value) : value.toFixed(2);
+  return Number.isInteger(value)
+    ? value.toLocaleString('en-US')
+    : value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function formatMoney(value: number): string {
+  return `৳${formatAmount(value)}`;
 }
 
 export function OrderTotalsBar({ totals }: Props) {
@@ -18,17 +25,30 @@ export function OrderTotalsBar({ totals }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <Card mode="outlined" style={styles.wrap}>
-      <Card.Content>
-        <Text variant="labelLarge" style={styles.title}>
-          {t('totals')}
-        </Text>
+    <Card mode="contained" style={styles.wrap}>
+      <Card.Content style={styles.content}>
+        <View style={styles.header}>
+          <MaterialCommunityIcons name="chart-timeline-variant" size={22} color={colors.primary} />
+          <Text variant="titleMedium" style={styles.title}>
+            {t('totals')}
+          </Text>
+        </View>
+
         <View style={styles.grand}>
-          <Stat label={t('totalOrders')} value={String(totals.orderCount)} />
+          <Stat label={t('totalOrders')} value={formatAmount(totals.orderCount)} />
           <Stat label={t('totalCases')} value={formatAmount(totals.cases)} />
           <Stat label={t('totalFreePcs')} value={formatAmount(totals.freePcs)} />
-          <Stat label={t('totalMoney')} value={formatAmount(totals.money)} />
         </View>
+
+        <View style={styles.valueBlock}>
+          <Text variant="bodyMedium" style={styles.valueLabel}>
+            {t('totalValue')}
+          </Text>
+          <Text variant="headlineSmall" style={styles.valueAmount}>
+            {formatMoney(totals.money)}
+          </Text>
+        </View>
+
         {totals.byProduct.length > 0 ? (
           <View style={styles.products}>
             <Pressable
@@ -37,12 +57,21 @@ export function OrderTotalsBar({ totals }: Props) {
               accessibilityRole="button"
               accessibilityState={{ expanded: open }}
             >
-              <Text variant="labelLarge" style={styles.toggleLabel}>
-                {t('productTotals')}
-              </Text>
-              <Text variant="titleMedium" style={styles.toggleArrow}>
-                {open ? '▾' : '▸'}
-              </Text>
+              <View style={styles.toggleLeft}>
+                <MaterialCommunityIcons
+                  name="package-variant-closed"
+                  size={20}
+                  color={colors.textMuted}
+                />
+                <Text variant="bodyMedium" style={styles.toggleLabel}>
+                  {t('productTotals')}
+                </Text>
+              </View>
+              <MaterialCommunityIcons
+                name={open ? 'chevron-down' : 'chevron-right'}
+                size={22}
+                color={colors.textMuted}
+              />
             </Pressable>
             {open ? (
               <View style={styles.table}>
@@ -72,7 +101,7 @@ export function OrderTotalsBar({ totals }: Props) {
                       {formatAmount(product.freePcs)}
                     </Text>
                     <Text variant="bodySmall" style={styles.numCell}>
-                      {formatAmount(product.money)}
+                      {formatMoney(product.money)}
                     </Text>
                   </View>
                 ))}
@@ -87,7 +116,7 @@ export function OrderTotalsBar({ totals }: Props) {
                     {formatAmount(totals.freePcs)}
                   </Text>
                   <Text variant="labelLarge" style={styles.numCell}>
-                    {formatAmount(totals.money)}
+                    {formatMoney(totals.money)}
                   </Text>
                 </View>
               </View>
@@ -102,34 +131,53 @@ export function OrderTotalsBar({ totals }: Props) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.stat}>
-      <Text variant="bodySmall" style={styles.statLabel}>
+      <Text variant="bodyMedium" style={styles.statLabel}>
         {label}
       </Text>
-      <Text variant="titleMedium">{value}</Text>
+      <Text variant="headlineSmall" style={styles.statValue}>
+        {value}
+      </Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { marginBottom: spacing.md, flexShrink: 0 },
-  title: { color: colors.primary, marginBottom: spacing.sm },
-  grand: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  stat: { minWidth: 88 },
-  statLabel: { color: colors.textMuted },
-  products: { marginTop: spacing.md },
+  wrap: {
+    marginBottom: spacing.md,
+    flexShrink: 0,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+  },
+  content: { paddingVertical: spacing.md },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  title: { color: colors.primary, fontWeight: '700' },
+  grand: { flexDirection: 'row', gap: spacing.md },
+  stat: { flex: 1 },
+  statLabel: { color: colors.textMuted, marginBottom: 2 },
+  statValue: { color: colors.text, fontWeight: '700' },
+  valueBlock: { marginTop: spacing.md },
+  valueLabel: { color: colors.textMuted, marginBottom: 2 },
+  valueAmount: { color: colors.text, fontWeight: '700' },
+  products: {
+    marginTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
   toggle: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
+    paddingTop: spacing.md,
+    minHeight: 44,
   },
+  toggleLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   toggleLabel: { color: colors.text },
-  toggleArrow: { color: colors.textMuted },
-  table: {
-    marginTop: spacing.sm,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
+  table: { marginTop: spacing.sm },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',

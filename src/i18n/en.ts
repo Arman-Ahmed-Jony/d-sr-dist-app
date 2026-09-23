@@ -138,4 +138,10 @@ export const en: Record<TranslationKey, string> = {
   searchSelectSr: 'Search SRs',
   tableFilters: 'Filters',
   done: 'Done',
+  quickFilters: 'Quick filters',
+  quickTodayDelivery: "Today's delivery",
+  quickNextDelivery: 'Upcoming delivery',
+  quickTodayOrders: "Today's orders",
+  quickPreviousOrders: 'Previous orders',
+  totalValue: 'Total value',
 };
