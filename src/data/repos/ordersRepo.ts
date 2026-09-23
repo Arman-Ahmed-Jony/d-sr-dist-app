@@ -1,20 +1,28 @@
 import {
   addDoc,
   collection,
+  doc,
+  getDoc,
   getDocs,
   query,
+  updateDoc,
   where,
+  serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getProduct } from './productsRepo';
 import { getShop, resolveShopForOrder } from './shopsRepo';
-import type { Order, OrderLine, OrderStatus } from '@/src/domain/types';
+import { computeLineTotal, computeOrderTotal } from '@/src/domain/orderCalc';
+import type { LineAdjustmentMode, Order, OrderLine, OrderStatus } from '@/src/domain/types';
 import { toDate } from '../converters';
 
 export type CreateOrderLineInput = {
   productId: string;
   quantityCases: number;
+  quantityPcs: number;
+  adjustmentMode: LineAdjustmentMode;
+  adjustmentValue: number;
 };
 
 export type CreateOrderShopInput =
@@ -27,55 +35,52 @@ export type CreateOrderShopInput =
       ownerName?: string;
     };
 
-/**
- * Creates an order with prices snapshotted from Firestore products.
- * Resolves shop by id or via resolveShopForOrder when given a new shop name.
- */
-export async function createOrder(input: {
-  distributorId: string;
-  srId: string;
-  createdBy: string;
-  shop: CreateOrderShopInput;
-  lines: CreateOrderLineInput[];
-  status?: OrderStatus;
-}): Promise<string> {
-  if (!input.lines.length) {
+async function resolveOrderShop(
+  distributorId: string,
+  createdBy: string,
+  shopInput: CreateOrderShopInput,
+): Promise<{ shopId: string; shopName: string }> {
+  if ('shopId' in shopInput) {
+    const shop = await getShop(shopInput.shopId);
+    if (!shop) {
+      throw new Error(`Shop not found: ${shopInput.shopId}`);
+    }
+    if (shop.distributorId !== distributorId) {
+      throw new Error('Shop belongs to another distributor.');
+    }
+    return { shopId: shop.id, shopName: shop.name };
+  }
+
+  const shop = await resolveShopForOrder({
+    distributorId,
+    createdBy,
+    name: shopInput.shopName,
+    phone: shopInput.phone,
+    address: shopInput.address,
+    area: shopInput.area,
+    ownerName: shopInput.ownerName,
+  });
+  return { shopId: shop.id, shopName: shop.name };
+}
+
+async function snapshotOrderLines(
+  distributorId: string,
+  inputLines: CreateOrderLineInput[],
+): Promise<OrderLine[]> {
+  if (!inputLines.length) {
     throw new Error('Order must include at least one line.');
   }
-  if (input.lines.length > 20) {
+  if (inputLines.length > 20) {
     throw new Error('Order cannot exceed 20 lines.');
   }
 
-  let shopId: string;
-  let shopName: string;
-
-  if ('shopId' in input.shop) {
-    const shop = await getShop(input.shop.shopId);
-    if (!shop) {
-      throw new Error(`Shop not found: ${input.shop.shopId}`);
-    }
-    if (shop.distributorId !== input.distributorId) {
-      throw new Error('Shop belongs to another distributor.');
-    }
-    shopId = shop.id;
-    shopName = shop.name;
-  } else {
-    const shop = await resolveShopForOrder({
-      distributorId: input.distributorId,
-      createdBy: input.createdBy,
-      name: input.shop.shopName,
-      phone: input.shop.phone,
-      address: input.shop.address,
-      area: input.shop.area,
-      ownerName: input.shop.ownerName,
-    });
-    shopId = shop.id;
-    shopName = shop.name;
+  const productIds = inputLines.map((line) => line.productId);
+  if (new Set(productIds).size !== productIds.length) {
+    throw new Error('Duplicate products are not allowed.');
   }
 
   const lines: OrderLine[] = [];
-
-  for (const line of input.lines) {
+  for (const line of inputLines) {
     if (!Number.isFinite(line.quantityCases) || line.quantityCases <= 0) {
       throw new Error('Each line needs a positive quantity.');
     }
@@ -84,32 +89,75 @@ export async function createOrder(input: {
     if (!product) {
       throw new Error(`Product not found: ${line.productId}`);
     }
-    if (product.distributorId !== input.distributorId) {
+    if (product.distributorId !== distributorId) {
       throw new Error(`Product ${line.productId} belongs to another distributor.`);
     }
     if (!product.active) {
       throw new Error(`Product is inactive: ${product.name}`);
     }
 
+    const adjustmentMode: LineAdjustmentMode =
+      line.adjustmentMode === 'freePcs' ? 'freePcs' : 'discountAmount';
+    const adjustmentValue = Number.isFinite(line.adjustmentValue) ? Math.max(0, line.adjustmentValue) : 0;
+    const quantityPcs = Number.isFinite(line.quantityPcs) ? Math.max(0, line.quantityPcs) : 0;
     const pricePerCase = product.pricePerCase;
-    const quantityCases = line.quantityCases;
+
     lines.push({
       productId: product.id,
       productName: product.name,
       pricePerCase,
-      quantityCases,
-      lineTotal: pricePerCase * quantityCases,
+      quantityCases: line.quantityCases,
+      quantityPcs,
+      adjustmentMode,
+      discountAmount: adjustmentMode === 'discountAmount' ? adjustmentValue : 0,
+      freePcs: adjustmentMode === 'freePcs' ? adjustmentValue : 0,
+      lineTotal: computeLineTotal({
+        pricePerCase,
+        quantityCases: line.quantityCases,
+        adjustmentMode,
+        adjustmentValue,
+      }),
     });
   }
+  return lines;
+}
 
+/**
+ * Creates an order with prices snapshotted from Firestore products.
+ * Resolves shop by id or via resolveShopForOrder when given a new shop name.
+ */
+export async function createOrder(input: {
+  distributorId: string;
+  distributorName?: string;
+  srId: string;
+  srName?: string;
+  createdBy: string;
+  shop: CreateOrderShopInput;
+  orderDate: Date;
+  deliveryDate: Date;
+  lines: CreateOrderLineInput[];
+  status?: OrderStatus;
+}): Promise<string> {
+  const { shopId, shopName } = await resolveOrderShop(
+    input.distributorId,
+    input.createdBy,
+    input.shop,
+  );
+  const lines = await snapshotOrderLines(input.distributorId, input.lines);
   const now = Timestamp.now();
   const status: OrderStatus = input.status ?? 'submitted';
+  const orderTotal = computeOrderTotal(lines);
   const ref = await addDoc(collection(db, 'orders'), {
     distributorId: input.distributorId,
+    distributorName: input.distributorName ?? '',
     srId: input.srId,
+    srName: input.srName ?? '',
     shopId,
     shopName,
+    orderDate: Timestamp.fromDate(input.orderDate),
+    deliveryDate: Timestamp.fromDate(input.deliveryDate),
     lines,
+    orderTotal,
     status,
     createdAt: now,
     updatedAt: now,
@@ -117,34 +165,121 @@ export async function createOrder(input: {
   return ref.id;
 }
 
-export async function listOrdersByShop(shopId: string): Promise<Order[]> {
-  const q = query(collection(db, 'orders'), where('shopId', '==', shopId));
+export async function getOrder(id: string): Promise<Order | null> {
+  const snap = await getDoc(doc(db, 'orders', id));
+  if (!snap.exists()) return null;
+  return mapOrder(snap.id, snap.data() as Record<string, unknown>);
+}
+
+export async function updateOrder(input: {
+  id: string;
+  distributorId: string;
+  createdBy: string;
+  shop: CreateOrderShopInput;
+  orderDate: Date;
+  deliveryDate: Date;
+  lines: CreateOrderLineInput[];
+  status?: OrderStatus;
+}): Promise<void> {
+  const existing = await getOrder(input.id);
+  if (!existing) {
+    throw new Error('Order not found.');
+  }
+  if (existing.distributorId !== input.distributorId) {
+    throw new Error('Order belongs to another distributor.');
+  }
+
+  const { shopId, shopName } = await resolveOrderShop(
+    input.distributorId,
+    input.createdBy,
+    input.shop,
+  );
+  const lines = await snapshotOrderLines(input.distributorId, input.lines);
+  await updateDoc(doc(db, 'orders', input.id), {
+    shopId,
+    shopName,
+    orderDate: Timestamp.fromDate(input.orderDate),
+    deliveryDate: Timestamp.fromDate(input.deliveryDate),
+    lines,
+    orderTotal: computeOrderTotal(lines),
+    status: input.status ?? existing.status,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function listOrdersByShop(shopId: string, distributorId: string): Promise<Order[]> {
+  // Equality on distributorId only so list queries satisfy rules without a composite index.
+  const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
   const snap = await getDocs(q);
-  const rows = snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>));
+  const rows = snap.docs
+    .map((d) => mapOrder(d.id, d.data() as Record<string, unknown>))
+    .filter((order) => order.shopId === shopId);
   rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   return rows;
+}
+
+export async function listOrdersBySr(srId: string, distributorId: string): Promise<Order[]> {
+  const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
+  const snap = await getDocs(q);
+  const rows = snap.docs
+    .map((d) => mapOrder(d.id, d.data() as Record<string, unknown>))
+    .filter((order) => order.srId === srId);
+  rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return rows;
+}
+
+function asAdjustmentMode(value: unknown): LineAdjustmentMode {
+  return value === 'freePcs' ? 'freePcs' : 'discountAmount';
 }
 
 export function mapOrder(id: string, data: Record<string, unknown>): Order {
   const rawLines = Array.isArray(data.lines) ? data.lines : [];
   const lines: OrderLine[] = rawLines.map((raw) => {
     const line = raw as Record<string, unknown>;
+    const adjustmentMode = asAdjustmentMode(line.adjustmentMode);
+    const discountAmount = Number(line.discountAmount ?? 0);
+    const freePcs = Number(line.freePcs ?? 0);
+    const pricePerCase = Number(line.pricePerCase ?? 0);
+    const quantityCases = Number(line.quantityCases ?? 0);
+    const storedTotal = line.lineTotal;
     return {
       productId: String(line.productId ?? ''),
       productName: String(line.productName ?? ''),
-      pricePerCase: Number(line.pricePerCase ?? 0),
-      quantityCases: Number(line.quantityCases ?? 0),
-      lineTotal: Number(line.lineTotal ?? 0),
+      pricePerCase,
+      quantityCases,
+      quantityPcs: Number(line.quantityPcs ?? 0),
+      adjustmentMode,
+      discountAmount,
+      freePcs,
+      lineTotal:
+        storedTotal === undefined
+          ? computeLineTotal({
+              pricePerCase,
+              quantityCases,
+              adjustmentMode,
+              adjustmentValue: adjustmentMode === 'discountAmount' ? discountAmount : freePcs,
+            })
+          : Number(storedTotal),
     };
   });
+
+  const orderDate = data.orderDate ? toDate(data.orderDate) : toDate(data.createdAt);
+  const deliveryDate = data.deliveryDate ? toDate(data.deliveryDate) : orderDate;
 
   return {
     id,
     distributorId: String(data.distributorId ?? ''),
+    distributorName: data.distributorName ? String(data.distributorName) : undefined,
     srId: String(data.srId ?? ''),
+    srName: data.srName ? String(data.srName) : undefined,
     shopId: String(data.shopId ?? ''),
     shopName: String(data.shopName ?? ''),
+    memoNo: data.memoNo ? String(data.memoNo) : undefined,
+    orderDate,
+    deliveryDate,
     lines,
+    orderTotal:
+      data.orderTotal === undefined ? computeOrderTotal(lines) : Number(data.orderTotal),
     status: (data.status as OrderStatus) ?? 'submitted',
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt ?? data.createdAt),

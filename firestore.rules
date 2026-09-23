@@ -47,7 +47,8 @@ service cloud.firestore {
 
     function orderLineValid(line) {
       return line.keys().hasAll([
-          'productId', 'productName', 'pricePerCase', 'quantityCases', 'lineTotal'
+          'productId', 'productName', 'pricePerCase', 'quantityCases',
+          'quantityPcs', 'adjustmentMode', 'discountAmount', 'freePcs', 'lineTotal'
         ])
         && line.productId is string
         && line.productName is string
@@ -55,7 +56,15 @@ service cloud.firestore {
         && line.pricePerCase >= 0
         && line.quantityCases is number
         && line.quantityCases > 0
-        && line.lineTotal is number;
+        && line.quantityPcs is number
+        && line.quantityPcs >= 0
+        && (line.adjustmentMode == 'discountAmount' || line.adjustmentMode == 'freePcs')
+        && line.discountAmount is number
+        && line.discountAmount >= 0
+        && line.freePcs is number
+        && line.freePcs >= 0
+        && line.lineTotal is number
+        && line.lineTotal >= 0;
     }
 
     // Firestore rules disallow recursion — unroll checks for up to 20 lines.
@@ -189,18 +198,42 @@ service cloud.firestore {
 
     match /orders/{orderId} {
       allow read: if isActiveUser()
+        && role() == 'distributor'
+        && resource.data.distributorId == distributorId();
+
+      allow read: if isActiveUser()
+        && role() == 'sr'
         && resource.data.distributorId == distributorId();
 
       allow create: if isActiveUser()
-        && (role() == 'sr' || role() == 'distributor')
+        && role() == 'sr'
         && request.resource.data.distributorId == distributorId()
-        && request.resource.data.srId is string
+        && request.resource.data.srId == request.auth.uid
         && request.resource.data.shopId is string
         && request.resource.data.shopName is string
         && request.resource.data.status is string
+        && request.resource.data.orderDate is timestamp
+        && request.resource.data.deliveryDate is timestamp
+        && request.resource.data.orderTotal is number
+        && request.resource.data.orderTotal >= 0
         && orderLinesValid();
 
-      allow update, delete: if false;
+      allow update: if isActiveUser()
+        && role() == 'sr'
+        && resource.data.srId == request.auth.uid
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.srId == resource.data.srId
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.shopId is string
+        && request.resource.data.shopName is string
+        && request.resource.data.status is string
+        && request.resource.data.orderDate is timestamp
+        && request.resource.data.deliveryDate is timestamp
+        && request.resource.data.orderTotal is number
+        && request.resource.data.orderTotal >= 0
+        && orderLinesValid();
+
+      allow delete: if false;
     }
   }
 }

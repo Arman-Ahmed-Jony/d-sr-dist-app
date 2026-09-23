@@ -2,6 +2,8 @@ export type UserRole = 'sr' | 'distributor';
 
 export type OrderStatus = 'draft' | 'submitted' | 'confirmed' | 'cancelled';
 
+export type LineAdjustmentMode = 'discountAmount' | 'freePcs';
+
 export interface AppUser {
   id: string;
   name: string;
@@ -48,17 +50,27 @@ export interface OrderLine {
   productName: string;
   pricePerCase: number;
   quantityCases: number;
+  quantityPcs: number;
+  adjustmentMode: LineAdjustmentMode;
+  discountAmount: number;
+  freePcs: number;
   lineTotal: number;
 }
 
 export interface Order {
   id: string;
   distributorId: string;
+  distributorName?: string;
   srId: string;
+  srName?: string;
   shopId: string;
   shopName: string;
-  lines: OrderLine[];
+  memoNo?: string;
+  orderDate: Date;
+  deliveryDate: Date;
   status: OrderStatus;
+  lines: OrderLine[];
+  orderTotal: number;
   createdAt: Date;
   updatedAt: Date;
 }

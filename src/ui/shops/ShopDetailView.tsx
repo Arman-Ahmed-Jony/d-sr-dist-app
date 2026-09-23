@@ -63,7 +63,7 @@ export function ShopDetailView({ shopId }: Props) {
       setOwnerName(row.ownerName);
 
       try {
-        const shopOrders = await listOrdersByShop(row.id);
+        const shopOrders = await listOrdersByShop(row.id, profile.distributorId);
         setOrders(shopOrders);
       } catch (ordersErr) {
         console.error('listOrdersByShop failed', ordersErr);
@@ -175,19 +175,16 @@ export function ShopDetailView({ shopId }: Props) {
         {orders.length === 0 ? (
           <Text style={styles.muted}>{t('emptyShopOrders')}</Text>
         ) : (
-          orders.map((order) => {
-            const total = order.lines.reduce((sum, line) => sum + line.lineTotal, 0);
-            return (
+          orders.map((order) => (
               <View key={order.id} style={styles.orderRow}>
                 <Text style={styles.orderTitle}>
-                  {order.createdAt.toLocaleDateString()} · {order.status}
+                  {order.orderDate.toLocaleDateString()} · {order.status}
                 </Text>
                 <Text style={styles.orderMeta}>
-                  {order.lines.length} {t('lines')} · {total}
+                  {order.lines.length} {t('lines')} · {order.orderTotal}
                 </Text>
               </View>
-            );
-          })
+            ))
         )}
       </ScrollView>
     </KeyboardAvoidingView>

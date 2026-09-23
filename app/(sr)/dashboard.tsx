@@ -24,8 +24,11 @@ export default function SrDashboard() {
       <Text style={styles.meta}>
         {t('distributorId')}: {profile?.distributorId}
       </Text>
+      <Link href="/(sr)/orders" asChild>
+        <AppButton title={t('orders')} style={styles.shops} />
+      </Link>
       <Link href="/(sr)/shops" asChild>
-        <AppButton title={t('shops')} style={styles.shops} />
+        <AppButton title={t('shops')} />
       </Link>
       <AppButton title={t('logout')} variant="ghost" onPress={() => logout()} style={styles.logout} />
     </View>
