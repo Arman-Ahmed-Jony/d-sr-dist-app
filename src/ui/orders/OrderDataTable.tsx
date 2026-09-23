@@ -1,6 +1,7 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { DataTable, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import { StatusChip } from '@/src/ui/StatusChip';
 import type {
   OrderTableGroup,
   OrderTableRow,
@@ -51,7 +52,7 @@ export function OrderDataTable({ view, groups }: Props) {
             width: 110,
             value: (row) => row.deliveryDate.toLocaleDateString(),
           },
-          { key: 'status', label: t('status'), width: 100, value: (row) => row.status },
+          { key: 'status', label: t('status'), width: 120, value: (row) => row.status },
           { key: 'cases', label: t('quantityCases'), width: 80, value: (row) => formatAmount(row.cases) },
           { key: 'freePcs', label: t('freePcs'), width: 80, value: (row) => formatAmount(row.freePcs) },
           { key: 'money', label: t('orderTotal'), width: 90, value: (row) => formatAmount(row.money) },
@@ -83,7 +84,7 @@ export function OrderDataTable({ view, groups }: Props) {
             width: 110,
             value: (row) => row.orderDate.toLocaleDateString(),
           },
-          { key: 'status', label: t('status'), width: 100, value: (row) => row.status },
+          { key: 'status', label: t('status'), width: 120, value: (row) => row.status },
         ];
 
   const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
@@ -116,7 +117,11 @@ export function OrderDataTable({ view, groups }: Props) {
               <DataTable.Row key={row.id}>
                 {columns.map((column) => (
                   <DataTable.Cell key={column.key} style={cellStyle(column.width)}>
-                    {column.value(row)}
+                    {column.key === 'status' ? (
+                      <StatusChip status={row.status} />
+                    ) : (
+                      column.value(row)
+                    )}
                   </DataTable.Cell>
                 ))}
               </DataTable.Row>

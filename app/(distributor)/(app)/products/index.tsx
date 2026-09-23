@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
-import { ActivityIndicator, Chip, List, Searchbar, Text } from 'react-native-paper';
+import { Link, router, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Chip, FAB, List, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listProductsByDistributor } from '@/src/data/repos/productsRepo';
 import type { Product } from '@/src/domain/types';
-import { AppButton } from '@/src/ui/Form';
+import { EmptyState } from '@/src/ui/EmptyState';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export default function ProductListScreen() {
@@ -72,10 +72,6 @@ export default function ProductListScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(distributor)/(app)/products/create" asChild>
-        <AppButton title={t('createProduct')} style={styles.createBtn} />
-      </Link>
-
       <Searchbar
         placeholder={t('searchProducts')}
         value={search}
@@ -100,9 +96,12 @@ export default function ProductListScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.muted}>
-            {t('emptyProductList')}
-          </Text>
+          <EmptyState
+            icon="package-variant"
+            message={t('emptyProductList')}
+            actionLabel={t('createProduct')}
+            onAction={() => router.push('/(distributor)/(app)/products/create')}
+          />
         }
         renderItem={({ item }) => (
           <Link href={`/(distributor)/(app)/products/${item.id}`} asChild>
@@ -118,6 +117,14 @@ export default function ProductListScreen() {
             />
           </Link>
         )}
+      />
+
+      <FAB
+        icon="plus"
+        color={colors.white}
+        style={styles.fab}
+        onPress={() => router.push('/(distributor)/(app)/products/create')}
+        accessibilityLabel={t('createProduct')}
       />
     </View>
   );
@@ -136,10 +143,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  createBtn: { marginBottom: spacing.md },
   search: { marginBottom: spacing.md },
   listFlex: { flex: 1 },
-  list: { paddingBottom: spacing.xl },
+  list: { paddingBottom: 88 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   row: {
     backgroundColor: colors.surface,
@@ -147,8 +153,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.md,
     marginBottom: spacing.sm,
+    minHeight: 56,
+    paddingVertical: spacing.sm,
   },
   badge: { alignSelf: 'center' },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
+    backgroundColor: colors.accent,
+  },
   muted: { color: colors.textMuted, textAlign: 'center' },
   error: { color: colors.danger, marginBottom: spacing.md },
 });

@@ -1,12 +1,12 @@
 import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
-import { ActivityIndicator, Chip, List, Text } from 'react-native-paper';
+import { Link, router, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Chip, FAB, List, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listSrsByDistributor } from '@/src/data/repos/usersRepo';
 import type { AppUser } from '@/src/domain/types';
-import { AppButton } from '@/src/ui/Form';
+import { EmptyState } from '@/src/ui/EmptyState';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export default function SrListScreen() {
@@ -57,10 +57,6 @@ export default function SrListScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(distributor)/(app)/srs/create" asChild>
-        <AppButton title={t('createSr')} style={styles.createBtn} />
-      </Link>
-
       {error ? (
         <Text variant="bodyMedium" style={styles.error}>
           {error}
@@ -76,9 +72,12 @@ export default function SrListScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.muted}>
-            {t('emptySrList')}
-          </Text>
+          <EmptyState
+            icon="account-group-outline"
+            message={t('emptySrList')}
+            actionLabel={t('createSr')}
+            onAction={() => router.push('/(distributor)/(app)/srs/create')}
+          />
         }
         renderItem={({ item }) => (
           <Link href={`/(distributor)/(app)/srs/${item.id}`} asChild>
@@ -94,6 +93,14 @@ export default function SrListScreen() {
             />
           </Link>
         )}
+      />
+
+      <FAB
+        icon="plus"
+        color={colors.white}
+        style={styles.fab}
+        onPress={() => router.push('/(distributor)/(app)/srs/create')}
+        accessibilityLabel={t('createSr')}
       />
     </View>
   );
@@ -112,9 +119,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  createBtn: { marginBottom: spacing.md },
   listFlex: { flex: 1 },
-  list: { paddingBottom: spacing.xl },
+  list: { paddingBottom: 88 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   row: {
     backgroundColor: colors.surface,
@@ -122,8 +128,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.md,
     marginBottom: spacing.sm,
+    minHeight: 56,
+    paddingVertical: spacing.sm,
   },
   badge: { alignSelf: 'center' },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
+    backgroundColor: colors.accent,
+  },
   muted: { color: colors.textMuted, textAlign: 'center' },
   error: { color: colors.danger, marginBottom: spacing.md },
 });

@@ -301,16 +301,6 @@ export function OrderForm({ order }: Props) {
             </View>
           ) : null}
 
-          <Text variant="bodySmall" style={styles.meta}>
-            {t('srName')}: {profile?.name}
-          </Text>
-          <Text variant="bodySmall" style={styles.meta}>
-            {t('distributorName')}: {profile?.distributorId}
-          </Text>
-          <Text variant="bodySmall" style={styles.meta}>
-            {t('status')}: {order?.status ?? 'submitted'}
-          </Text>
-
           <DateField label={t('orderDate')} value={orderDate} onChange={setOrderDate} />
           <DateField label={t('deliveryDate')} value={deliveryDate} onChange={setDeliveryDate} />
           </Card.Content>
@@ -433,33 +423,41 @@ export function OrderForm({ order }: Props) {
           onPress={() => setLines((current) => [...current, newLine()])}
           style={styles.addLine}
         />
+      </ScrollView>
 
+      <View style={styles.footer}>
         {error ? (
           <Text variant="bodyMedium" style={styles.error}>
             {error}
           </Text>
         ) : null}
-
         <View style={styles.totalBar}>
           <Text variant="titleMedium">{t('orderTotal')}</Text>
           <Text variant="titleMedium" style={styles.totalValue}>
             {orderTotal}
           </Text>
         </View>
-
         <AppButton
           title={submitting ? t('loading') : editing ? t('saveOrder') : t('createOrder')}
           onPress={onSubmit}
           disabled={submitting}
         />
-      </ScrollView>
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.lg, paddingBottom: spacing.xl },
+  container: { padding: spacing.lg, paddingBottom: 32 },
+  footer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.surface,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.lg,
+  },
   centered: {
     flex: 1,
     backgroundColor: colors.background,
@@ -484,12 +482,11 @@ const styles = StyleSheet.create({
   toggleRow: { marginBottom: spacing.md },
   lineTotal: { color: colors.text, marginBottom: spacing.sm },
   addLine: { marginBottom: spacing.md },
-  error: { color: colors.danger, marginBottom: spacing.md },
+  error: { color: colors.danger, marginBottom: spacing.sm },
   totalBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: spacing.md,
     marginBottom: spacing.md,
   },
   totalValue: { color: colors.primary },

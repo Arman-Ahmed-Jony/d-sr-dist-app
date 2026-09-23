@@ -30,6 +30,7 @@ export const AppButton = forwardRef<View, AppButtonProps>(function AppButton(
       disabled={disabled}
       buttonColor={variant === 'danger' ? colors.danger : undefined}
       textColor={variant === 'ghost' ? colors.text : undefined}
+      contentStyle={styles.buttonContent}
       style={style}
     >
       {title}
@@ -50,12 +51,16 @@ type AppInputProps = {
   keyboardType?: KeyboardTypeOptions;
   secureTextEntry?: boolean;
   multiline?: boolean;
+  autoComplete?: 'email' | 'password' | 'off';
+  returnKeyType?: 'done' | 'go' | 'next' | 'search' | 'send';
+  onSubmitEditing?: () => void;
 };
 
 export function AppInput({ style, ...rest }: AppInputProps) {
-  return <TextInput mode="outlined" style={[styles.field, style]} {...rest} />;
+  return <TextInput mode="outlined" dense={false} style={[styles.field, style]} {...rest} />;
 }
 
 const styles = StyleSheet.create({
+  buttonContent: { minHeight: 48 },
   field: { marginBottom: spacing.md },
 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Card, Text } from 'react-native-paper';
+import { Avatar, Card, HelperText, Snackbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { AppButton, AppInput } from '@/src/ui/Form';
@@ -17,6 +17,8 @@ export default function LoginScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
 
+  const displayError = localError || error;
+
   const onSubmit = async () => {
     setLocalError(null);
     setSubmitting(true);
@@ -31,48 +33,61 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { paddingTop: insets.top + spacing.sm }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <LanguageToggle style={[styles.langToggle, { top: insets.top + spacing.sm }]} />
-
-      <View style={styles.hero}>
-        <Text variant="displaySmall" style={styles.brand}>
-          {t('appName')}
-        </Text>
-        <Text variant="headlineSmall">{t('loginTitle')}</Text>
-        <Text variant="bodyMedium" style={styles.subtitle}>
-          {t('loginSubtitle')}
-        </Text>
+      <View style={styles.topRow}>
+        <LanguageToggle />
       </View>
 
-      <Card mode="outlined">
-        <Card.Content>
-          <AppInput
-            label={t('email')}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            value={email}
-            onChangeText={setEmail}
-          />
-          <AppInput
-            label={t('password')}
-            secureTextEntry
-            value={password}
-            onChangeText={setPassword}
-          />
-          {localError || error ? (
-            <Text variant="bodyMedium" style={styles.error}>
-              {localError || error}
-            </Text>
-          ) : null}
-          <AppButton
-            title={submitting ? t('loading') : t('login')}
-            onPress={onSubmit}
-            disabled={submitting}
-          />
-        </Card.Content>
-      </Card>
+      <View style={styles.body}>
+        <View style={styles.hero}>
+          <Avatar.Icon icon="leaf" size={56} style={styles.mark} color={colors.white} />
+          <Text variant="headlineMedium" style={styles.brand}>
+            {t('appName')}
+          </Text>
+          <Text variant="bodyMedium" style={styles.subtitle}>
+            {t('loginSubtitle')}
+          </Text>
+        </View>
+
+        <Card mode="elevated">
+          <Card.Content>
+            <AppInput
+              label={t('email')}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              returnKeyType="next"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <AppInput
+              label={t('password')}
+              autoComplete="password"
+              secureTextEntry
+              returnKeyType="go"
+              value={password}
+              onChangeText={setPassword}
+              onSubmitEditing={() => {
+                if (!submitting) void onSubmit();
+              }}
+            />
+            <HelperText type="error" visible={Boolean(displayError)}>
+              {displayError}
+            </HelperText>
+            <AppButton
+              title={submitting ? t('loading') : t('login')}
+              onPress={onSubmit}
+              disabled={submitting}
+            />
+          </Card.Content>
+        </Card>
+      </View>
+
+      <Snackbar visible={Boolean(displayError)} onDismiss={() => setLocalError(null)} duration={4000}>
+        {displayError}
+      </Snackbar>
     </KeyboardAvoidingView>
   );
 }
@@ -81,19 +96,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: spacing.lg,
-    justifyContent: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
-  langToggle: {
-    position: 'absolute',
-    right: spacing.lg,
-    zIndex: 1,
-  },
+  topRow: { alignItems: 'flex-end', marginBottom: spacing.md },
+  body: { flex: 1, justifyContent: 'center' },
   hero: { marginBottom: spacing.xl },
-  brand: {
-    color: colors.primary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: { color: colors.textMuted, marginTop: spacing.xs },
-  error: { color: colors.danger, marginBottom: spacing.md },
+  mark: { backgroundColor: colors.primary, marginBottom: spacing.md },
+  brand: { color: colors.primary, marginBottom: spacing.xs },
+  subtitle: { color: colors.textMuted },
 });

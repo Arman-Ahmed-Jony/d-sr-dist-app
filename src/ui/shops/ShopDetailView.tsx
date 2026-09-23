@@ -8,6 +8,7 @@ import { getShop, updateShop } from '@/src/data/repos/shopsRepo';
 import { listOrdersByShop } from '@/src/data/repos/ordersRepo';
 import type { Order, Shop } from '@/src/domain/types';
 import { AppButton, AppInput } from '@/src/ui/Form';
+import { StatusChip } from '@/src/ui/StatusChip';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Props = {
@@ -189,9 +190,10 @@ export function ShopDetailView({ shopId }: Props) {
           orders.map((order) => (
             <List.Item
               key={order.id}
-              title={`${order.orderDate.toLocaleDateString()} · ${order.status}`}
+              title={order.orderDate.toLocaleDateString()}
               description={`${order.lines.length} ${t('lines')} · ${order.orderTotal}`}
               style={styles.orderRow}
+              right={() => <StatusChip status={order.status} />}
             />
           ))
         )}

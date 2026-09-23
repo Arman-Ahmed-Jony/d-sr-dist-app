@@ -1,12 +1,13 @@
 import { useCallback, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
-import { ActivityIndicator, List, Text } from 'react-native-paper';
+import { Link, router, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, FAB, List, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listOrdersBySr } from '@/src/data/repos/ordersRepo';
 import type { Order } from '@/src/domain/types';
-import { AppButton } from '@/src/ui/Form';
+import { EmptyState } from '@/src/ui/EmptyState';
+import { StatusChip } from '@/src/ui/StatusChip';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export default function SrOrderListScreen() {
@@ -52,9 +53,6 @@ export default function SrOrderListScreen() {
 
   return (
     <View style={styles.container}>
-      <Link href="/(sr)/(app)/orders/create" asChild>
-        <AppButton title={t('createOrder')} style={styles.createBtn} />
-      </Link>
       {error ? (
         <Text variant="bodyMedium" style={styles.error}>
           {error}
@@ -76,9 +74,12 @@ export default function SrOrderListScreen() {
           />
         }
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.muted}>
-            {t('emptyOrderList')}
-          </Text>
+          <EmptyState
+            icon="clipboard-list-outline"
+            message={t('emptyOrderList')}
+            actionLabel={t('createOrder')}
+            onAction={() => router.push('/(sr)/(app)/orders/create')}
+          />
         }
         renderItem={({ item }) => (
           <Link
@@ -87,11 +88,19 @@ export default function SrOrderListScreen() {
           >
             <List.Item
               title={item.shopName}
-              description={`${item.orderDate.toLocaleDateString()} · ${item.status}\n${item.lines.length} ${t('lines')} · ${item.orderTotal}`}
+              description={`${item.orderDate.toLocaleDateString()} · ${item.lines.length} ${t('lines')} · ${item.orderTotal}`}
               style={styles.row}
+              right={() => <StatusChip status={item.status} />}
             />
           </Link>
         )}
+      />
+      <FAB
+        icon="plus"
+        color={colors.white}
+        style={styles.fab}
+        onPress={() => router.push('/(sr)/(app)/orders/create')}
+        accessibilityLabel={t('createOrder')}
       />
     </View>
   );
@@ -110,9 +119,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  createBtn: { marginBottom: spacing.md },
   listFlex: { flex: 1 },
-  list: { paddingBottom: spacing.xl },
+  list: { paddingBottom: 88 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   row: {
     backgroundColor: colors.surface,
@@ -120,6 +128,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.md,
     marginBottom: spacing.sm,
+    minHeight: 56,
+    paddingVertical: spacing.sm,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
+    backgroundColor: colors.accent,
   },
   muted: { color: colors.textMuted, textAlign: 'center' },
   error: { color: colors.danger, marginBottom: spacing.md },

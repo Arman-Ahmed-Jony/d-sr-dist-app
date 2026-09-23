@@ -1,12 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
-import { ActivityIndicator, List, Searchbar, Text } from 'react-native-paper';
+import { Link, router, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, FAB, List, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listShopsByDistributor } from '@/src/data/repos/shopsRepo';
 import type { Shop } from '@/src/domain/types';
-import { AppButton } from '@/src/ui/Form';
+import { EmptyState } from '@/src/ui/EmptyState';
 import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Props = {
@@ -69,10 +69,6 @@ export function ShopListView({ baseHref }: Props) {
 
   return (
     <View style={styles.container}>
-      <Link href={`${baseHref}/create`} asChild>
-        <AppButton title={t('createShop')} style={styles.createBtn} />
-      </Link>
-
       <Searchbar
         placeholder={t('searchShops')}
         value={search}
@@ -104,9 +100,12 @@ export function ShopListView({ baseHref }: Props) {
           />
         }
         ListEmptyComponent={
-          <Text variant="bodyMedium" style={styles.muted}>
-            {t('emptyShopList')}
-          </Text>
+          <EmptyState
+            icon="storefront-outline"
+            message={t('emptyShopList')}
+            actionLabel={t('createShop')}
+            onAction={() => router.push(`${baseHref}/create`)}
+          />
         }
         renderItem={({ item }) => (
           <Link
@@ -128,6 +127,14 @@ export function ShopListView({ baseHref }: Props) {
           </Link>
         )}
       />
+
+      <FAB
+        icon="plus"
+        color={colors.white}
+        style={styles.fab}
+        onPress={() => router.push(`${baseHref}/create`)}
+        accessibilityLabel={t('createShop')}
+      />
     </View>
   );
 }
@@ -145,10 +152,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  createBtn: { marginBottom: spacing.md },
   search: { marginBottom: spacing.md },
   listFlex: { flex: 1 },
-  list: { paddingBottom: spacing.xl },
+  list: { paddingBottom: 88 },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   row: {
     backgroundColor: colors.surface,
@@ -156,6 +162,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radii.md,
     marginBottom: spacing.sm,
+    minHeight: 56,
+    paddingVertical: spacing.sm,
+  },
+  fab: {
+    position: 'absolute',
+    right: spacing.lg,
+    bottom: spacing.lg,
+    backgroundColor: colors.accent,
   },
   muted: { color: colors.textMuted, textAlign: 'center' },
   error: { color: colors.danger, marginBottom: spacing.md },
