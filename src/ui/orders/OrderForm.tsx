@@ -443,7 +443,7 @@ export function OrderForm({ order }: Props) {
           onPress={onSubmit}
           disabled={submitting}
         />
-        {order?.status === 'draft' && profile?.distributorId ? (
+        {(order?.status === 'draft' || order?.pendingSync) && profile?.distributorId ? (
           <DeleteDraftOrderButton
             orderId={order.id}
             distributorId={profile.distributorId}

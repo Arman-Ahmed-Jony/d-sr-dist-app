@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PaperProvider } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { AuthProvider, useAuth } from '@/src/context/AuthContext';
+import { OfflineSyncProvider } from '@/src/context/OfflineSyncProvider';
 import { paperTheme } from '@/src/theme/paperTheme';
 import { colors } from '@/src/theme/tokens';
 
@@ -55,6 +56,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <AuthProvider>
+        <OfflineSyncProvider>
         <PaperProvider
           theme={paperTheme}
           settings={{
@@ -84,6 +86,7 @@ export default function RootLayout() {
             </Stack>
           </AuthGate>
         </PaperProvider>
+        </OfflineSyncProvider>
       </AuthProvider>
     </GestureHandlerRootView>
   );

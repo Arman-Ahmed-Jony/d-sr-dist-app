@@ -75,4 +75,5 @@ export interface Order {
   orderTotal: number;
   createdAt: Date;
   updatedAt: Date;
+  pendingSync?: boolean;
 }

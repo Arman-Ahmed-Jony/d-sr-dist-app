@@ -1,10 +1,8 @@
 import {
   doc,
-  getDoc,
   collection,
   query,
   where,
-  getDocs,
   setDoc,
   serverTimestamp,
   Timestamp,
@@ -12,6 +10,9 @@ import {
 import { db } from '../firebase';
 import { toDate } from '../converters';
 import type { AppUser, UserRole } from '@/src/domain/types';
+import { getDocWithFallback, getDocsWithFallback } from '../offline/firestoreReads';
+import { isOfflineError } from '../offline/isOfflineError';
+import { loadCachedProfile, saveCachedProfile } from '../offline/catalogStore';
 
 function mapUser(id: string, data: Record<string, unknown>): AppUser {
   return {
@@ -26,9 +27,16 @@ function mapUser(id: string, data: Record<string, unknown>): AppUser {
 }
 
 export async function getUserProfile(uid: string): Promise<AppUser | null> {
-  const snap = await getDoc(doc(db, 'users', uid));
-  if (!snap.exists()) return null;
-  return mapUser(snap.id, snap.data() as Record<string, unknown>);
+  try {
+    const snap = await getDocWithFallback(doc(db, 'users', uid));
+    if (!snap.exists()) return loadCachedProfile(uid);
+    const user = mapUser(snap.id, snap.data() as Record<string, unknown>);
+    await saveCachedProfile(user);
+    return user;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    return loadCachedProfile(uid);
+  }
 }
 
 export async function listSrsByDistributor(distributorId: string): Promise<AppUser[]> {
@@ -37,7 +45,7 @@ export async function listSrsByDistributor(distributorId: string): Promise<AppUs
     where('distributorId', '==', distributorId),
     where('role', '==', 'sr'),
   );
-  const snap = await getDocs(q);
+  const snap = await getDocsWithFallback(q);
   return snap.docs.map((d) => mapUser(d.id, d.data() as Record<string, unknown>));
 }
 

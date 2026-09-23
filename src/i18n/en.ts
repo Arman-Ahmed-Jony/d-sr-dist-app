@@ -18,6 +18,7 @@ export const en: Record<TranslationKey, string> = {
   statusSubmitted: 'Submitted',
   statusConfirmed: 'Confirmed',
   statusCancelled: 'Cancelled',
+  statusPending: 'Waiting to sync',
   name: 'Name',
   role: 'Role',
   distributorId: 'Distributor ID',

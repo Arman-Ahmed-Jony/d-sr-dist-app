@@ -1,8 +1,6 @@
 import {
   collection,
   doc,
-  getDoc,
-  getDocs,
   addDoc,
   updateDoc,
   query,
@@ -13,6 +11,14 @@ import {
 import { db } from '../firebase';
 import { toDate } from '../converters';
 import type { Product } from '@/src/domain/types';
+import { getDocWithFallback, getDocsWithFallback } from '../offline/firestoreReads';
+import { isOfflineError } from '../offline/isOfflineError';
+import {
+  loadCachedProductById,
+  loadCachedProducts,
+  saveCachedProductById,
+  saveCachedProducts,
+} from '../offline/catalogStore';
 
 function mapProduct(id: string, data: Record<string, unknown>): Product {
   return {
@@ -27,35 +33,53 @@ function mapProduct(id: string, data: Record<string, unknown>): Product {
 }
 
 export async function getProduct(id: string): Promise<Product | null> {
-  const snap = await getDoc(doc(db, 'products', id));
-  if (!snap.exists()) return null;
-  return mapProduct(snap.id, snap.data() as Record<string, unknown>);
+  try {
+    const snap = await getDocWithFallback(doc(db, 'products', id));
+    if (!snap.exists()) return loadCachedProductById(id);
+    const product = mapProduct(snap.id, snap.data() as Record<string, unknown>);
+    await saveCachedProductById(product);
+    return product;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    return loadCachedProductById(id);
+  }
 }
 
 export async function listProductsByDistributor(distributorId: string): Promise<Product[]> {
-  // Equality-only query avoids waiting on a composite index; sort in memory.
-  const q = query(
-    collection(db, 'products'),
-    where('distributorId', '==', distributorId),
-  );
-  const snap = await getDocs(q);
-  const rows = snap.docs.map((d) => mapProduct(d.id, d.data() as Record<string, unknown>));
-  rows.sort((a, b) => a.name.localeCompare(b.name));
-  return rows;
+  try {
+    const q = query(collection(db, 'products'), where('distributorId', '==', distributorId));
+    const snap = await getDocsWithFallback(q);
+    const rows = snap.docs.map((d) => mapProduct(d.id, d.data() as Record<string, unknown>));
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+    await saveCachedProducts(distributorId, rows);
+    return rows;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    return (await loadCachedProducts(distributorId)) ?? [];
+  }
 }
 
 export async function listActiveProductsByDistributor(
   distributorId: string,
 ): Promise<Product[]> {
-  const q = query(
-    collection(db, 'products'),
-    where('distributorId', '==', distributorId),
-    where('active', '==', true),
-  );
-  const snap = await getDocs(q);
-  const rows = snap.docs.map((d) => mapProduct(d.id, d.data() as Record<string, unknown>));
-  rows.sort((a, b) => a.name.localeCompare(b.name));
-  return rows;
+  try {
+    const q = query(
+      collection(db, 'products'),
+      where('distributorId', '==', distributorId),
+      where('active', '==', true),
+    );
+    const snap = await getDocsWithFallback(q);
+    const rows = snap.docs.map((d) => mapProduct(d.id, d.data() as Record<string, unknown>));
+    rows.sort((a, b) => a.name.localeCompare(b.name));
+    const all = (await loadCachedProducts(distributorId)) ?? [];
+    const merged = [...rows, ...all.filter((item) => !rows.some((row) => row.id === item.id))];
+    await saveCachedProducts(distributorId, merged);
+    return rows;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const cached = (await loadCachedProducts(distributorId)) ?? [];
+    return cached.filter((product) => product.active);
+  }
 }
 
 export async function createProduct(input: {

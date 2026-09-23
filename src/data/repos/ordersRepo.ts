@@ -3,8 +3,6 @@ import {
   collection,
   deleteDoc,
   doc,
-  getDoc,
-  getDocs,
   query,
   updateDoc,
   where,
@@ -17,6 +15,26 @@ import { getShop, resolveShopForOrder } from './shopsRepo';
 import { computeLineTotal, computeOrderTotal } from '@/src/domain/orderCalc';
 import type { LineAdjustmentMode, Order, OrderLine, OrderStatus } from '@/src/domain/types';
 import { toDate } from '../converters';
+import { getDocWithFallback, getDocsWithFallback } from '../offline/firestoreReads';
+import { isOfflineError } from '../offline/isOfflineError';
+import {
+  loadCachedDistributorOrders,
+  loadCachedShopOrders,
+  loadCachedSrOrders,
+  saveCachedDistributorOrders,
+  saveCachedShopOrders,
+  saveCachedSrOrders,
+} from '../offline/catalogStore';
+import {
+  enqueueCreateOrder,
+  enqueueDeleteOrder,
+  enqueueUpdateOrder,
+  getPendingOrder,
+  isLocalId,
+  listPendingOrders,
+  updatePendingPreview,
+  type OutboxShopFields,
+} from '../offline/outbox';
 
 export type CreateOrderLineInput = {
   productId: string;
@@ -141,11 +159,59 @@ async function snapshotOrderLines(
   return lines;
 }
 
-/**
- * Creates an order with prices snapshotted from Firestore products.
- * Resolves shop by id or via resolveShopForOrder when given a new shop name.
- */
-export async function createOrder(input: {
+type BuiltOrder = {
+  shopId: string;
+  shopName: string;
+  lines: OrderLine[];
+  orderTotal: number;
+  status: OrderStatus;
+};
+
+async function buildOrder(input: {
+  distributorId: string;
+  createdBy: string;
+  shop: CreateOrderShopInput;
+  lines: CreateOrderLineInput[];
+  status?: OrderStatus;
+}): Promise<BuiltOrder> {
+  const { shopId, shopName } = await resolveOrderShop(
+    input.distributorId,
+    input.createdBy,
+    input.shop,
+  );
+  const lines = await snapshotOrderLines(input.distributorId, input.lines);
+  return {
+    shopId,
+    shopName,
+    lines,
+    orderTotal: computeOrderTotal(lines),
+    status: input.status ?? 'submitted',
+  };
+}
+
+function outboxShopFromBuilt(
+  inputShop: CreateOrderShopInput,
+  shopId: string,
+  shopName: string,
+): { shopId: string } | { localShopId: string; shopName: string } | OutboxShopFields {
+  if (isLocalId(shopId)) return { localShopId: shopId, shopName };
+  if ('shopId' in inputShop) return { shopId };
+  return {
+    shopName: inputShop.shopName,
+    phone: inputShop.phone,
+    address: inputShop.address,
+    area: inputShop.area,
+    ownerName: inputShop.ownerName,
+  };
+}
+
+function mergePending(remote: Order[], pending: Order[]): Order[] {
+  const remoteIds = new Set(remote.map((row) => row.id));
+  const extras = pending.filter((row) => !remoteIds.has(row.id));
+  return [...extras, ...remote].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+}
+
+export type ServerOrderInput = {
   distributorId: string;
   distributorName?: string;
   srId: string;
@@ -156,41 +222,85 @@ export async function createOrder(input: {
   deliveryDate: Date;
   lines: CreateOrderLineInput[];
   status?: OrderStatus;
-}): Promise<string> {
-  const { shopId, shopName } = await resolveOrderShop(
-    input.distributorId,
-    input.createdBy,
-    input.shop,
-  );
-  const lines = await snapshotOrderLines(input.distributorId, input.lines);
+};
+
+export async function pushOrderToServer(input: ServerOrderInput): Promise<string> {
+  const built = await buildOrder(input);
   const now = Timestamp.now();
-  const status: OrderStatus = input.status ?? 'submitted';
-  const orderTotal = computeOrderTotal(lines);
   const ref = await addDoc(collection(db, 'orders'), {
     distributorId: input.distributorId,
     distributorName: input.distributorName ?? '',
     srId: input.srId,
     srName: input.srName ?? '',
-    shopId,
-    shopName,
+    shopId: built.shopId,
+    shopName: built.shopName,
     orderDate: Timestamp.fromDate(input.orderDate),
     deliveryDate: Timestamp.fromDate(input.deliveryDate),
-    lines,
-    orderTotal,
-    status,
+    lines: built.lines,
+    orderTotal: built.orderTotal,
+    status: built.status,
     createdAt: now,
     updatedAt: now,
   });
   return ref.id;
 }
 
-export async function getOrder(id: string): Promise<Order | null> {
-  const snap = await getDoc(doc(db, 'orders', id));
-  if (!snap.exists()) return null;
-  return mapOrder(snap.id, snap.data() as Record<string, unknown>);
+export async function createOrder(input: ServerOrderInput): Promise<string> {
+  try {
+    return await pushOrderToServer(input);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const built = await buildOrder(input);
+    const localId = `pending-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const now = new Date();
+    const preview: Order = {
+      id: localId,
+      distributorId: input.distributorId,
+      distributorName: input.distributorName,
+      srId: input.srId,
+      srName: input.srName,
+      shopId: built.shopId,
+      shopName: built.shopName,
+      orderDate: input.orderDate,
+      deliveryDate: input.deliveryDate,
+      lines: built.lines,
+      orderTotal: built.orderTotal,
+      status: built.status,
+      createdAt: now,
+      updatedAt: now,
+      pendingSync: true,
+    };
+    return enqueueCreateOrder(
+      {
+        distributorId: input.distributorId,
+        distributorName: input.distributorName,
+        srId: input.srId,
+        srName: input.srName,
+        createdBy: input.createdBy,
+        shop: outboxShopFromBuilt(input.shop, built.shopId, built.shopName),
+        orderDate: input.orderDate.toISOString(),
+        deliveryDate: input.deliveryDate.toISOString(),
+        lines: input.lines,
+        status: input.status,
+      },
+      preview,
+    );
+  }
 }
 
-export async function updateOrder(input: {
+export async function getOrder(id: string): Promise<Order | null> {
+  if (isLocalId(id)) return getPendingOrder(id);
+  try {
+    const snap = await getDocWithFallback(doc(db, 'orders', id));
+    if (!snap.exists()) return getPendingOrder(id);
+    return mapOrder(snap.id, snap.data() as Record<string, unknown>);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    return getPendingOrder(id);
+  }
+}
+
+export type ServerOrderUpdateInput = {
   id: string;
   distributorId: string;
   createdBy: string;
@@ -199,7 +309,9 @@ export async function updateOrder(input: {
   deliveryDate: Date;
   lines: CreateOrderLineInput[];
   status?: OrderStatus;
-}): Promise<void> {
+};
+
+export async function pushOrderUpdateToServer(input: ServerOrderUpdateInput): Promise<void> {
   const existing = await getOrder(input.id);
   if (!existing) {
     throw new Error('Order not found.');
@@ -207,26 +319,89 @@ export async function updateOrder(input: {
   if (existing.distributorId !== input.distributorId) {
     throw new Error('Order belongs to another distributor.');
   }
-
-  const { shopId, shopName } = await resolveOrderShop(
-    input.distributorId,
-    input.createdBy,
-    input.shop,
-  );
-  const lines = await snapshotOrderLines(input.distributorId, input.lines);
+  const built = await buildOrder(input);
   await updateDoc(doc(db, 'orders', input.id), {
-    shopId,
-    shopName,
+    shopId: built.shopId,
+    shopName: built.shopName,
     orderDate: Timestamp.fromDate(input.orderDate),
     deliveryDate: Timestamp.fromDate(input.deliveryDate),
-    lines,
-    orderTotal: computeOrderTotal(lines),
+    lines: built.lines,
+    orderTotal: built.orderTotal,
     status: input.status ?? existing.status,
     updatedAt: serverTimestamp(),
   });
 }
 
+export async function updateOrder(input: ServerOrderUpdateInput): Promise<void> {
+  if (isLocalId(input.id)) {
+    const built = await buildOrder(input);
+    await enqueueUpdateOrder({
+      orderId: input.id,
+      payload: {
+        distributorId: input.distributorId,
+        createdBy: input.createdBy,
+        shop: outboxShopFromBuilt(input.shop, built.shopId, built.shopName),
+        orderDate: input.orderDate.toISOString(),
+        deliveryDate: input.deliveryDate.toISOString(),
+        lines: input.lines,
+        status: input.status,
+      },
+    });
+    const previous = (await getPendingOrder(input.id)) ?? {
+      id: input.id,
+      distributorId: input.distributorId,
+      srId: '',
+      shopId: built.shopId,
+      shopName: built.shopName,
+      orderDate: input.orderDate,
+      deliveryDate: input.deliveryDate,
+      lines: built.lines,
+      orderTotal: built.orderTotal,
+      status: input.status ?? 'submitted',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      pendingSync: true,
+    };
+    await updatePendingPreview(input.id, {
+      ...previous,
+      shopId: built.shopId,
+      shopName: built.shopName,
+      orderDate: input.orderDate,
+      deliveryDate: input.deliveryDate,
+      lines: built.lines,
+      orderTotal: built.orderTotal,
+      status: input.status ?? previous.status,
+      updatedAt: new Date(),
+      pendingSync: true,
+    });
+    return;
+  }
+
+  try {
+    await pushOrderUpdateToServer(input);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const built = await buildOrder(input);
+    await enqueueUpdateOrder({
+      orderId: input.id,
+      payload: {
+        distributorId: input.distributorId,
+        createdBy: input.createdBy,
+        shop: outboxShopFromBuilt(input.shop, built.shopId, built.shopName),
+        orderDate: input.orderDate.toISOString(),
+        deliveryDate: input.deliveryDate.toISOString(),
+        lines: input.lines,
+        status: input.status,
+      },
+    });
+  }
+}
+
 export async function deleteDraftOrder(id: string, distributorId: string): Promise<void> {
+  if (isLocalId(id)) {
+    await enqueueDeleteOrder(id, distributorId);
+    return;
+  }
   const existing = await getOrder(id);
   if (!existing) {
     throw new Error('Order not found.');
@@ -234,39 +409,67 @@ export async function deleteDraftOrder(id: string, distributorId: string): Promi
   if (existing.distributorId !== distributorId) {
     throw new Error('Order belongs to another distributor.');
   }
-  if (existing.status !== 'draft') {
+  if (existing.status !== 'draft' && !existing.pendingSync) {
     throw new Error('Only draft orders can be deleted.');
   }
-  await deleteDoc(doc(db, 'orders', id));
+  try {
+    await deleteDoc(doc(db, 'orders', id));
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    await enqueueDeleteOrder(id, distributorId);
+  }
 }
 
 export async function listOrdersByShop(shopId: string, distributorId: string): Promise<Order[]> {
-  // Equality on distributorId only so list queries satisfy rules without a composite index.
-  const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
-  const snap = await getDocs(q);
-  const rows = snap.docs
-    .map((d) => mapOrder(d.id, d.data() as Record<string, unknown>))
-    .filter((order) => order.shopId === shopId);
-  rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  return rows;
+  const pending = (await listPendingOrders()).filter((order) => order.shopId === shopId);
+  try {
+    const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
+    const snap = await getDocsWithFallback(q);
+    const rows = snap.docs
+      .map((d) => mapOrder(d.id, d.data() as Record<string, unknown>))
+      .filter((order) => order.shopId === shopId);
+    rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    await saveCachedShopOrders(shopId, distributorId, rows);
+    return mergePending(rows, pending);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const cached = (await loadCachedShopOrders(shopId, distributorId)) ?? [];
+    return mergePending(cached, pending);
+  }
 }
 
 export async function listOrdersBySr(srId: string, distributorId: string): Promise<Order[]> {
-  const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
-  const snap = await getDocs(q);
-  const rows = snap.docs
-    .map((d) => mapOrder(d.id, d.data() as Record<string, unknown>))
-    .filter((order) => order.srId === srId);
-  rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  return rows;
+  const pending = await listPendingOrders(srId);
+  try {
+    const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
+    const snap = await getDocsWithFallback(q);
+    const rows = snap.docs
+      .map((d) => mapOrder(d.id, d.data() as Record<string, unknown>))
+      .filter((order) => order.srId === srId);
+    rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    await saveCachedSrOrders(srId, distributorId, rows);
+    return mergePending(rows, pending);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const cached = (await loadCachedSrOrders(srId, distributorId)) ?? [];
+    return mergePending(cached, pending);
+  }
 }
 
 export async function listOrdersByDistributor(distributorId: string): Promise<Order[]> {
-  const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
-  const snap = await getDocs(q);
-  const rows = snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>));
-  rows.sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
-  return rows;
+  const pending = (await listPendingOrders()).filter((order) => order.distributorId === distributorId);
+  try {
+    const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
+    const snap = await getDocsWithFallback(q);
+    const rows = snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>));
+    rows.sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
+    await saveCachedDistributorOrders(distributorId, rows);
+    return mergePending(rows, pending);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const cached = (await loadCachedDistributorOrders(distributorId)) ?? [];
+    return mergePending(cached, pending);
+  }
 }
 
 function asAdjustmentMode(value: unknown): LineAdjustmentMode {

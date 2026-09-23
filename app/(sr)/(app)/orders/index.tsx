@@ -92,8 +92,8 @@ export default function SrOrderListScreen() {
             }
             right={() => (
               <View style={styles.rowRight}>
-                <StatusChip status={item.status} />
-                {item.status === 'draft' && profile?.distributorId ? (
+                <StatusChip status={item.status} pending={item.pendingSync} />
+                {(item.status === 'draft' || item.pendingSync) && profile?.distributorId ? (
                   <DeleteDraftOrderButton
                     orderId={item.id}
                     distributorId={profile.distributorId}

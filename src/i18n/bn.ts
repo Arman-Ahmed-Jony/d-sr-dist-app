@@ -16,6 +16,7 @@ export const bn = {
   statusSubmitted: 'জমা',
   statusConfirmed: 'নিশ্চিত',
   statusCancelled: 'বাতিল',
+  statusPending: 'সিঙ্কের অপেক্ষায়',
   name: 'নাম',
   role: 'ভূমিকা',
   distributorId: 'ডিস্ট্রিবিউটর আইডি',

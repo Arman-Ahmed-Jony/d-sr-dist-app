@@ -10,8 +10,15 @@ const STATUS_KEY = {
   cancelled: 'statusCancelled',
 } as const;
 
-export function StatusChip({ status }: { status: OrderStatus }) {
+export function StatusChip({ status, pending }: { status: OrderStatus; pending?: boolean }) {
   const { t } = useTranslation();
+  if (pending) {
+    return (
+      <Chip compact style={{ backgroundColor: colors.surfaceMuted }}>
+        {t('statusPending')}
+      </Chip>
+    );
+  }
   const selected = status === 'submitted' || status === 'confirmed';
   const style =
     status === 'confirmed'

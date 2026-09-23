@@ -15,6 +15,8 @@ import {
   loadProfile,
   subscribeAuth,
 } from '@/src/services/authService';
+import { loadCachedProfile } from '@/src/data/offline/catalogStore';
+import { isOfflineError } from '@/src/data/offline/isOfflineError';
 
 const PROFILE_LOAD_TIMEOUT_MS = 15_000;
 
@@ -86,20 +88,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const resolveProfile = useCallback(async (user: User) => {
-    const p = await withTimeout(
-      loadProfile(user.uid),
-      PROFILE_LOAD_TIMEOUT_MS,
-      'Profile load timed out. Firestore may be unavailable — enable the Cloud Firestore API and retry.',
-    );
-    if (!p) {
-      throw new Error(
-        'User profile not found in Firestore. Create a users/{uid} document for this account.',
+    try {
+      const p = await withTimeout(
+        loadProfile(user.uid),
+        PROFILE_LOAD_TIMEOUT_MS,
+        'Profile load timed out. Firestore may be unavailable — enable the Cloud Firestore API and retry.',
       );
+      if (!p) {
+        throw new Error(
+          'User profile not found in Firestore. Create a users/{uid} document for this account.',
+        );
+      }
+      if (!p.active) {
+        throw new Error('This account is inactive. Contact your distributor admin.');
+      }
+      return p;
+    } catch (error) {
+      const cached = await loadCachedProfile(user.uid);
+      if (cached?.active && isOfflineError(error)) return cached;
+      throw error;
     }
-    if (!p.active) {
-      throw new Error('This account is inactive. Contact your distributor admin.');
-    }
-    return p;
   }, []);
 
   useEffect(() => {

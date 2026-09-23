@@ -122,10 +122,10 @@ export function OrderDataTable({ view, groups, distributorId, onDraftDeleted }: 
                 {columns.map((column) => (
                   <DataTable.Cell key={column.key} style={cellStyle(column.width)}>
                     {column.key === 'status' ? (
-                      <StatusChip status={row.status} />
+                      <StatusChip status={row.status} pending={row.order.pendingSync} />
                     ) : column.key === 'actions' ? (
                       view === 'order' &&
-                      row.status === 'draft' &&
+                      (row.status === 'draft' || row.order.pendingSync) &&
                       distributorId &&
                       onDraftDeleted ? (
                         <DeleteDraftOrderButton

@@ -196,8 +196,8 @@ export function ShopDetailView({ shopId }: Props) {
               style={styles.orderRow}
               right={() => (
                 <View style={styles.orderRight}>
-                  <StatusChip status={order.status} />
-                  {order.status === 'draft' && profile?.distributorId ? (
+                  <StatusChip status={order.status} pending={order.pendingSync} />
+                  {(order.status === 'draft' || order.pendingSync) && profile?.distributorId ? (
                     <DeleteDraftOrderButton
                       orderId={order.id}
                       distributorId={profile.distributorId}
