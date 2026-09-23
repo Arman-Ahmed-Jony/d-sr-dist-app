@@ -1,4 +1,5 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { Chip, Modal, Portal, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { OrderStatus } from '@/src/domain/types';
 import type {
@@ -10,7 +11,7 @@ import type {
 import { AppButton } from '@/src/ui/Form';
 import { SearchSelect } from '@/src/ui/SearchSelect';
 import { DateField } from '@/src/ui/DateField';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 const STATUSES: OrderStatus[] = ['draft', 'submitted', 'confirmed', 'cancelled'];
 
@@ -90,13 +91,9 @@ function ChoiceChip({
   onPress: () => void;
 }) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={[styles.chip, active && styles.chipActive]}
-      accessibilityRole="button"
-    >
-      <Text style={[styles.chipText, active && styles.chipTextActive]}>{label}</Text>
-    </Pressable>
+    <Chip selected={active} onPress={onPress} compact style={styles.chip}>
+      {label}
+    </Chip>
   );
 }
 
@@ -116,7 +113,9 @@ function OptionalDate({
   if (!value) {
     return (
       <View style={styles.dateField}>
-        <Text style={styles.dateLabel}>{label}</Text>
+        <Text variant="labelLarge" style={styles.dateLabel}>
+          {label}
+        </Text>
         <AppButton title={anyLabel} variant="ghost" onPress={() => onChange(new Date())} />
       </View>
     );
@@ -163,186 +162,180 @@ export function OrderTableCriteriaSheet({
       : ['none', 'shop', 'sr', 'status', 'orderDate', 'product'];
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.overlay}>
-        <View style={styles.panel}>
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.panelContent}>
-            <Text style={styles.title}>{t('tableFilters')}</Text>
+    <Portal>
+      <Modal visible={visible} onDismiss={onClose} contentContainerStyle={styles.panel}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.panelContent}>
+          <Text variant="titleLarge" style={styles.title}>
+            {t('tableFilters')}
+          </Text>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('viewMode')}</Text>
-              <View style={styles.chipRow}>
-                <ChoiceChip
-                  label={t('viewOrders')}
-                  active={view === 'order'}
-                  onPress={() => onViewChange('order')}
-                />
-                <ChoiceChip
-                  label={t('viewLines')}
-                  active={view === 'line'}
-                  onPress={() => onViewChange('line')}
-                />
-              </View>
+          <View style={styles.section}>
+            <Text variant="labelLarge" style={styles.sectionLabel}>
+              {t('viewMode')}
+            </Text>
+            <View style={styles.chipRow}>
+              <ChoiceChip
+                label={t('viewOrders')}
+                active={view === 'order'}
+                onPress={() => onViewChange('order')}
+              />
+              <ChoiceChip
+                label={t('viewLines')}
+                active={view === 'line'}
+                onPress={() => onViewChange('line')}
+              />
             </View>
+          </View>
 
-            <SearchSelect
-              label={t('shop')}
-              placeholder={t('searchSelectShop')}
-              value={selectedShop ? { id: selectedShop.id, label: selectedShop.label } : allOption}
-              options={[allOption, ...shops]}
-              onSelect={(option) => onFiltersChange({ shopId: option.id || undefined })}
+          <SearchSelect
+            label={t('shop')}
+            placeholder={t('searchSelectShop')}
+            value={selectedShop ? { id: selectedShop.id, label: selectedShop.label } : allOption}
+            options={[allOption, ...shops]}
+            onSelect={(option) => onFiltersChange({ shopId: option.id || undefined })}
+          />
+          <SearchSelect
+            label={t('srName')}
+            placeholder={t('searchSelectSr')}
+            value={selectedSr ? { id: selectedSr.id, label: selectedSr.label } : allOption}
+            options={[allOption, ...srs]}
+            onSelect={(option) => onFiltersChange({ srId: option.id || undefined })}
+          />
+          <SearchSelect
+            label={t('products')}
+            placeholder={t('searchSelectProduct')}
+            value={
+              selectedProduct
+                ? { id: selectedProduct.id, label: selectedProduct.label }
+                : allOption
+            }
+            options={[allOption, ...products]}
+            onSelect={(option) => onFiltersChange({ productId: option.id || undefined })}
+          />
+
+          <View style={styles.section}>
+            <Text variant="labelLarge" style={styles.sectionLabel}>
+              {t('status')}
+            </Text>
+            <View style={styles.chipRow}>
+              <ChoiceChip
+                label={t('all')}
+                active={!filters.status}
+                onPress={() => onFiltersChange({ status: undefined })}
+              />
+              {STATUSES.map((status) => (
+                <ChoiceChip
+                  key={status}
+                  label={status}
+                  active={filters.status === status}
+                  onPress={() => onFiltersChange({ status })}
+                />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.dateRow}>
+            <OptionalDate
+              label={t('orderDateFrom')}
+              value={filters.orderDateFrom}
+              onChange={(date) => onFiltersChange({ orderDateFrom: date })}
+              anyLabel={t('anyDate')}
+              clearLabel={t('clearDate')}
             />
-            <SearchSelect
-              label={t('srName')}
-              placeholder={t('searchSelectSr')}
-              value={selectedSr ? { id: selectedSr.id, label: selectedSr.label } : allOption}
-              options={[allOption, ...srs]}
-              onSelect={(option) => onFiltersChange({ srId: option.id || undefined })}
+            <OptionalDate
+              label={t('orderDateTo')}
+              value={filters.orderDateTo}
+              onChange={(date) => onFiltersChange({ orderDateTo: date })}
+              anyLabel={t('anyDate')}
+              clearLabel={t('clearDate')}
             />
-            <SearchSelect
-              label={t('products')}
-              placeholder={t('searchSelectProduct')}
-              value={
-                selectedProduct
-                  ? { id: selectedProduct.id, label: selectedProduct.label }
-                  : allOption
-              }
-              options={[allOption, ...products]}
-              onSelect={(option) => onFiltersChange({ productId: option.id || undefined })}
+          </View>
+          <View style={styles.dateRow}>
+            <OptionalDate
+              label={t('deliveryDateFrom')}
+              value={filters.deliveryDateFrom}
+              onChange={(date) => onFiltersChange({ deliveryDateFrom: date })}
+              anyLabel={t('anyDate')}
+              clearLabel={t('clearDate')}
             />
+            <OptionalDate
+              label={t('deliveryDateTo')}
+              value={filters.deliveryDateTo}
+              onChange={(date) => onFiltersChange({ deliveryDateTo: date })}
+              anyLabel={t('anyDate')}
+              clearLabel={t('clearDate')}
+            />
+          </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('status')}</Text>
-              <View style={styles.chipRow}>
+          <View style={styles.section}>
+            <Text variant="labelLarge" style={styles.sectionLabel}>
+              {t('sortBy')}
+            </Text>
+            <View style={styles.chipRow}>
+              {sortKeys.map((key) => (
                 <ChoiceChip
-                  label={t('all')}
-                  active={!filters.status}
-                  onPress={() => onFiltersChange({ status: undefined })}
+                  key={key}
+                  label={sortKeyLabel(key, t)}
+                  active={sortKey === key}
+                  onPress={() => onSortKeyChange(key)}
                 />
-                {STATUSES.map((status) => (
-                  <ChoiceChip
-                    key={status}
-                    label={status}
-                    active={filters.status === status}
-                    onPress={() => onFiltersChange({ status })}
-                  />
-                ))}
-              </View>
+              ))}
             </View>
+            <View style={styles.chipRow}>
+              <ChoiceChip
+                label={t('sortDesc')}
+                active={sortDirection === 'desc'}
+                onPress={() => onSortDirectionChange('desc')}
+              />
+              <ChoiceChip
+                label={t('sortAsc')}
+                active={sortDirection === 'asc'}
+                onPress={() => onSortDirectionChange('asc')}
+              />
+            </View>
+          </View>
 
-            <View style={styles.dateRow}>
-              <OptionalDate
-                label={t('orderDateFrom')}
-                value={filters.orderDateFrom}
-                onChange={(date) => onFiltersChange({ orderDateFrom: date })}
-                anyLabel={t('anyDate')}
-                clearLabel={t('clearDate')}
-              />
-              <OptionalDate
-                label={t('orderDateTo')}
-                value={filters.orderDateTo}
-                onChange={(date) => onFiltersChange({ orderDateTo: date })}
-                anyLabel={t('anyDate')}
-                clearLabel={t('clearDate')}
-              />
-            </View>
-            <View style={styles.dateRow}>
-              <OptionalDate
-                label={t('deliveryDateFrom')}
-                value={filters.deliveryDateFrom}
-                onChange={(date) => onFiltersChange({ deliveryDateFrom: date })}
-                anyLabel={t('anyDate')}
-                clearLabel={t('clearDate')}
-              />
-              <OptionalDate
-                label={t('deliveryDateTo')}
-                value={filters.deliveryDateTo}
-                onChange={(date) => onFiltersChange({ deliveryDateTo: date })}
-                anyLabel={t('anyDate')}
-                clearLabel={t('clearDate')}
-              />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('sortBy')}</Text>
-              <View style={styles.chipRow}>
-                {sortKeys.map((key) => (
-                  <ChoiceChip
-                    key={key}
-                    label={sortKeyLabel(key, t)}
-                    active={sortKey === key}
-                    onPress={() => onSortKeyChange(key)}
-                  />
-                ))}
-              </View>
-              <View style={styles.chipRow}>
+          <View style={styles.section}>
+            <Text variant="labelLarge" style={styles.sectionLabel}>
+              {t('groupBy')}
+            </Text>
+            <View style={styles.chipRow}>
+              {groupKeys.map((key) => (
                 <ChoiceChip
-                  label={t('sortDesc')}
-                  active={sortDirection === 'desc'}
-                  onPress={() => onSortDirectionChange('desc')}
+                  key={key}
+                  label={groupByLabel(key, t)}
+                  active={
+                    groupBy === key ||
+                    (view === 'order' && key === 'none' && groupBy === 'product')
+                  }
+                  onPress={() => onGroupByChange(key)}
                 />
-                <ChoiceChip
-                  label={t('sortAsc')}
-                  active={sortDirection === 'asc'}
-                  onPress={() => onSortDirectionChange('asc')}
-                />
-              </View>
+              ))}
             </View>
+          </View>
 
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>{t('groupBy')}</Text>
-              <View style={styles.chipRow}>
-                {groupKeys.map((key) => (
-                  <ChoiceChip
-                    key={key}
-                    label={groupByLabel(key, t)}
-                    active={
-                      groupBy === key ||
-                      (view === 'order' && key === 'none' && groupBy === 'product')
-                    }
-                    onPress={() => onGroupByChange(key)}
-                  />
-                ))}
-              </View>
-            </View>
-
-            <AppButton title={t('done')} onPress={onClose} />
-          </ScrollView>
-        </View>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityRole="button" />
-      </View>
-    </Modal>
+          <AppButton title={t('done')} onPress={onClose} />
+        </ScrollView>
+      </Modal>
+    </Portal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(28, 25, 20, 0.4)' },
   panel: {
     backgroundColor: colors.background,
-    borderBottomLeftRadius: radii.lg,
-    borderBottomRightRadius: radii.lg,
+    marginHorizontal: spacing.md,
+    marginVertical: spacing.xl,
     maxHeight: '85%',
-    borderBottomWidth: 1,
-    borderColor: colors.border,
+    borderRadius: 14,
   },
   panelContent: { padding: spacing.lg, paddingBottom: spacing.xl },
-  backdrop: { flex: 1 },
-  title: { ...typography.heading, color: colors.primary, marginBottom: spacing.md },
+  title: { color: colors.primary, marginBottom: spacing.md },
   section: { marginBottom: spacing.md },
-  sectionLabel: { ...typography.label, color: colors.text, marginBottom: spacing.xs },
+  sectionLabel: { color: colors.text, marginBottom: spacing.xs },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  chip: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    backgroundColor: colors.surface,
-  },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { ...typography.caption, color: colors.text },
-  chipTextActive: { color: colors.white },
+  chip: { marginRight: 0 },
   dateRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   dateField: { flexGrow: 1, flexBasis: 140, marginBottom: spacing.sm },
-  dateLabel: { ...typography.label, color: colors.text, marginBottom: spacing.xs },
+  dateLabel: { color: colors.text, marginBottom: spacing.xs },
 });

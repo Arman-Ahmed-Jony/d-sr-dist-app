@@ -1,21 +1,14 @@
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Card, List, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { getShop, updateShop } from '@/src/data/repos/shopsRepo';
 import { listOrdersByShop } from '@/src/data/repos/ordersRepo';
 import type { Order, Shop } from '@/src/domain/types';
 import { AppButton, AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Props = {
   shopId: string;
@@ -115,8 +108,10 @@ export function ShopDetailView({ shopId }: Props) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -124,7 +119,9 @@ export function ShopDetailView({ shopId }: Props) {
   if (!shop) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>{error ?? t('errorShopNotFound')}</Text>
+        <Text variant="bodyMedium" style={styles.error}>
+          {error ?? t('errorShopNotFound')}
+        </Text>
       </View>
     );
   }
@@ -140,51 +137,63 @@ export function ShopDetailView({ shopId }: Props) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.form}>
-          <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
-          <AppInput
-            label={t('ownerName')}
-            value={ownerName}
-            onChangeText={setOwnerName}
-            autoCapitalize="words"
-          />
-          <AppInput
-            label={t('phone')}
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
-          <AppInput label={t('area')} value={area} onChangeText={setArea} />
-          <AppInput
-            label={t('address')}
-            value={address}
-            onChangeText={setAddress}
-            multiline
-            style={styles.multiline}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          {message ? <Text style={styles.message}>{message}</Text> : null}
-          <AppButton
-            title={saving ? t('loading') : t('save')}
-            onPress={onSave}
-            disabled={saving}
-          />
-        </View>
+        <Card mode="outlined" style={styles.form}>
+          <Card.Content>
+            <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
+            <AppInput
+              label={t('ownerName')}
+              value={ownerName}
+              onChangeText={setOwnerName}
+              autoCapitalize="words"
+            />
+            <AppInput
+              label={t('phone')}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+            <AppInput label={t('area')} value={area} onChangeText={setArea} />
+            <AppInput
+              label={t('address')}
+              value={address}
+              onChangeText={setAddress}
+              multiline
+              style={styles.multiline}
+            />
+            {error ? (
+              <Text variant="bodyMedium" style={styles.error}>
+                {error}
+              </Text>
+            ) : null}
+            {message ? (
+              <Text variant="bodyMedium" style={styles.message}>
+                {message}
+              </Text>
+            ) : null}
+            <AppButton
+              title={saving ? t('loading') : t('save')}
+              onPress={onSave}
+              disabled={saving}
+            />
+          </Card.Content>
+        </Card>
 
-        <Text style={styles.sectionTitle}>{t('previousOrders')}</Text>
+        <Text variant="titleMedium" style={styles.sectionTitle}>
+          {t('previousOrders')}
+        </Text>
         {orders.length === 0 ? (
-          <Text style={styles.muted}>{t('emptyShopOrders')}</Text>
+          <Text variant="bodyMedium" style={styles.muted}>
+            {t('emptyShopOrders')}
+          </Text>
         ) : (
           orders.map((order) => (
-              <View key={order.id} style={styles.orderRow}>
-                <Text style={styles.orderTitle}>
-                  {order.orderDate.toLocaleDateString()} · {order.status}
-                </Text>
-                <Text style={styles.orderMeta}>
-                  {order.lines.length} {t('lines')} · {order.orderTotal}
-                </Text>
-              </View>
-            ))
+            <List.Item
+              key={order.id}
+              title={`${order.orderDate.toLocaleDateString()} · ${order.status}`}
+              description={`${order.lines.length} ${t('lines')} · ${order.orderTotal}`}
+              style={styles.orderRow}
+            />
+          ))
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -202,20 +211,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.lg,
   },
-  form: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.lg,
-  },
+  form: { marginBottom: spacing.lg },
   multiline: {
     minHeight: 88,
     textAlignVertical: 'top',
   },
   sectionTitle: {
-    ...typography.heading,
     color: colors.text,
     marginBottom: spacing.md,
   },
@@ -224,12 +225,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  orderTitle: { ...typography.label, color: colors.text },
-  orderMeta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
   error: { color: colors.danger, marginBottom: spacing.md },
   message: { color: colors.success, marginBottom: spacing.md },
-  muted: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
+  muted: { color: colors.textMuted, textAlign: 'center' },
 });

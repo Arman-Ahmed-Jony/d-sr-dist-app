@@ -1,14 +1,7 @@
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Card, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import {
@@ -18,7 +11,7 @@ import {
 } from '@/src/data/repos/usersRepo';
 import type { AppUser } from '@/src/domain/types';
 import { AppButton, AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 export default function EditSrScreen() {
   const { t } = useTranslation();
@@ -106,8 +99,10 @@ export default function EditSrScreen() {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -115,7 +110,9 @@ export default function EditSrScreen() {
   if (!sr) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.error}>{error ?? t('errorNotFound')}</Text>
+        <Text variant="bodyMedium" style={styles.error}>
+          {error ?? t('errorNotFound')}
+        </Text>
       </View>
     );
   }
@@ -126,38 +123,48 @@ export default function EditSrScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.form}>
-          <AppInput
-            label={t('name')}
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
-          <AppInput label={t('email')} value={sr.email} editable={false} />
-          <Text style={styles.status}>
-            {t('role')}: {sr.role} · {sr.active ? t('active') : t('inactive')}
-          </Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          {message ? <Text style={styles.message}>{message}</Text> : null}
-          <AppButton
-            title={saving ? t('loading') : t('save')}
-            onPress={onSave}
-            disabled={saving || toggling}
-          />
-          <AppButton
-            title={
-              toggling
-                ? t('loading')
-                : sr.active
-                  ? t('deactivate')
-                  : t('activate')
-            }
-            variant={sr.active ? 'danger' : 'primary'}
-            onPress={onToggleActive}
-            disabled={saving || toggling}
-            style={styles.toggleBtn}
-          />
-        </View>
+        <Card mode="outlined">
+          <Card.Content>
+            <AppInput
+              label={t('name')}
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+            />
+            <AppInput label={t('email')} value={sr.email} editable={false} />
+            <Text variant="bodySmall" style={styles.status}>
+              {t('role')}: {sr.role} · {sr.active ? t('active') : t('inactive')}
+            </Text>
+            {error ? (
+              <Text variant="bodyMedium" style={styles.error}>
+                {error}
+              </Text>
+            ) : null}
+            {message ? (
+              <Text variant="bodyMedium" style={styles.message}>
+                {message}
+              </Text>
+            ) : null}
+            <AppButton
+              title={saving ? t('loading') : t('save')}
+              onPress={onSave}
+              disabled={saving || toggling}
+            />
+            <AppButton
+              title={
+                toggling
+                  ? t('loading')
+                  : sr.active
+                    ? t('deactivate')
+                    : t('activate')
+              }
+              variant={sr.active ? 'danger' : 'primary'}
+              onPress={onToggleActive}
+              disabled={saving || toggling}
+              style={styles.toggleBtn}
+            />
+          </Card.Content>
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -174,20 +181,12 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.lg,
   },
-  form: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   status: {
-    ...typography.caption,
     color: colors.textMuted,
     marginBottom: spacing.md,
   },
   error: { color: colors.danger, marginBottom: spacing.md },
   message: { color: colors.success, marginBottom: spacing.md },
-  muted: { ...typography.body, color: colors.textMuted },
+  muted: { color: colors.textMuted },
   toggleBtn: { marginTop: spacing.md },
 });

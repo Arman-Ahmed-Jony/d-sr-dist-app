@@ -1,18 +1,12 @@
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { Card, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { registerUser } from '@/src/services/authService';
 import { AppButton, AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 export default function CreateSrScreen() {
   const { t } = useTranslation();
@@ -55,28 +49,34 @@ export default function CreateSrScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.form}>
-          <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
-          <AppInput
-            label={t('email')}
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            keyboardType="email-address"
-          />
-          <AppInput
-            label={t('password')}
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <AppButton
-            title={submitting ? t('loading') : t('createSr')}
-            onPress={onSubmit}
-            disabled={submitting}
-          />
-        </View>
+        <Card mode="outlined">
+          <Card.Content>
+            <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
+            <AppInput
+              label={t('email')}
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              keyboardType="email-address"
+            />
+            <AppInput
+              label={t('password')}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+            {error ? (
+              <Text variant="bodyMedium" style={styles.error}>
+                {error}
+              </Text>
+            ) : null}
+            <AppButton
+              title={submitting ? t('loading') : t('createSr')}
+              onPress={onSubmit}
+              disabled={submitting}
+            />
+          </Card.Content>
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -85,12 +85,5 @@ export default function CreateSrScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   container: { padding: spacing.lg },
-  form: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   error: { color: colors.danger, marginBottom: spacing.md },
 });

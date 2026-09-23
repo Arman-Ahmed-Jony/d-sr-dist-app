@@ -1,5 +1,6 @@
 import { Redirect } from 'expo-router';
-import { ActivityIndicator, View } from 'react-native';
+import { View } from 'react-native';
+import { ActivityIndicator } from 'react-native-paper';
 import { useAuth } from '@/src/context/AuthContext';
 import { colors } from '@/src/theme/tokens';
 

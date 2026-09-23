@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Chip, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { Order } from '@/src/domain/types';
 import {
@@ -26,7 +27,7 @@ import {
   OrderTableCriteriaSheet,
   sortKeyLabel,
 } from '@/src/ui/orders/OrderTableCriteriaSheet';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 type Props = {
   orders: Order[];
@@ -47,30 +48,6 @@ function formatDateRange(from?: Date, to?: Date): string {
   if (from) return `${formatDate(from)} →`;
   if (to) return `→ ${formatDate(to)}`;
   return '';
-}
-
-function SummaryChipView({
-  chip,
-  onPress,
-}: {
-  chip: SummaryChip;
-  onPress: () => void;
-}) {
-  return (
-    <View style={styles.summaryChip}>
-      <Pressable onPress={onPress} accessibilityRole="button" style={styles.summaryChipBody}>
-        <Text style={styles.summaryChipText}>{chip.label}</Text>
-      </Pressable>
-      <Pressable
-        onPress={chip.onClear}
-        accessibilityRole="button"
-        accessibilityLabel="clear"
-        style={styles.summaryChipClear}
-      >
-        <Text style={styles.summaryChipClearText}>×</Text>
-      </Pressable>
-    </View>
-  );
 }
 
 export function DistributorOrdersView({ orders }: Props) {
@@ -210,11 +187,18 @@ export function DistributorOrdersView({ orders }: Props) {
       {chips.length > 0 ? (
         <View style={styles.chipRow}>
           {chips.map((chip) => (
-            <SummaryChipView key={chip.id} chip={chip} onPress={() => setSheetOpen(true)} />
+            <Chip
+              key={chip.id}
+              onPress={() => setSheetOpen(true)}
+              onClose={chip.onClear}
+              compact
+            >
+              {chip.label}
+            </Chip>
           ))}
-          <Pressable onPress={resetAll} accessibilityRole="button" style={styles.clearAll}>
-            <Text style={styles.clearAllText}>{t('clearFilters')}</Text>
-          </Pressable>
+          <Chip onPress={resetAll} compact>
+            {t('clearFilters')}
+          </Chip>
         </View>
       ) : null}
 
@@ -238,7 +222,9 @@ export function DistributorOrdersView({ orders }: Props) {
 
       <OrderTotalsBar totals={totals} />
       {rows.length === 0 ? (
-        <Text style={styles.empty}>{t('emptyOrderTable')}</Text>
+        <Text variant="bodyMedium" style={styles.empty}>
+          {t('emptyOrderTable')}
+        </Text>
       ) : (
         <OrderDataTable view={view} groups={groups} />
       )}
@@ -255,31 +241,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     alignItems: 'center',
   },
-  summaryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-  },
-  summaryChipBody: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  summaryChipText: { ...typography.caption, color: colors.text },
-  summaryChipClear: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderLeftWidth: 1,
-    borderLeftColor: colors.border,
-  },
-  summaryChipClearText: { ...typography.label, color: colors.textMuted },
-  clearAll: { paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
-  clearAllText: { ...typography.caption, color: colors.primary },
   empty: {
-    ...typography.body,
     color: colors.textMuted,
     textAlign: 'center',
     marginBottom: spacing.md,

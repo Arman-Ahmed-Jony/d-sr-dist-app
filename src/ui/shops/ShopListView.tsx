@@ -1,20 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, List, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listShopsByDistributor } from '@/src/data/repos/shopsRepo';
 import type { Shop } from '@/src/domain/types';
-import { AppButton, AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { AppButton } from '@/src/ui/Form';
+import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Props = {
   /** e.g. `/(distributor)/(app)/shops` or `/(sr)/(app)/shops` */
@@ -66,8 +59,10 @@ export function ShopListView({ baseHref }: Props) {
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -78,15 +73,20 @@ export function ShopListView({ baseHref }: Props) {
         <AppButton title={t('createShop')} style={styles.createBtn} />
       </Link>
 
-      <AppInput
-        label={t('searchShops')}
+      <Searchbar
+        placeholder={t('searchShops')}
         value={search}
         onChangeText={setSearch}
         autoCapitalize="none"
         autoCorrect={false}
+        style={styles.search}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text variant="bodyMedium" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
 
       <FlatList
         style={styles.listFlex}
@@ -103,7 +103,11 @@ export function ShopListView({ baseHref }: Props) {
             tintColor={colors.primary}
           />
         }
-        ListEmptyComponent={<Text style={styles.muted}>{t('emptyShopList')}</Text>}
+        ListEmptyComponent={
+          <Text variant="bodyMedium" style={styles.muted}>
+            {t('emptyShopList')}
+          </Text>
+        }
         renderItem={({ item }) => (
           <Link
             href={
@@ -116,14 +120,11 @@ export function ShopListView({ baseHref }: Props) {
             }
             asChild
           >
-            <Pressable style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowMeta}>
-                  {[item.area, item.phone].filter(Boolean).join(' · ')}
-                </Text>
-              </View>
-            </Pressable>
+            <List.Item
+              title={item.name}
+              description={[item.area, item.phone].filter(Boolean).join(' · ')}
+              style={styles.row}
+            />
           </Link>
         )}
       />
@@ -145,6 +146,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   createBtn: { marginBottom: spacing.md },
+  search: { marginBottom: spacing.md },
   listFlex: { flex: 1 },
   list: { paddingBottom: spacing.xl },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
@@ -153,12 +155,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  rowText: { gap: spacing.xs },
-  rowName: { ...typography.label, color: colors.text },
-  rowMeta: { ...typography.caption, color: colors.textMuted },
-  muted: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
-  error: { ...typography.body, color: colors.danger, marginBottom: spacing.md },
+  muted: { color: colors.textMuted, textAlign: 'center' },
+  error: { color: colors.danger, marginBottom: spacing.md },
 });

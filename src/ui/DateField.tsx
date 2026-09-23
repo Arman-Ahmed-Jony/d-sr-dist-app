@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { Button, TextInput } from 'react-native-paper';
+import { spacing } from '@/src/theme/tokens';
 
 type Props = {
   label: string;
@@ -27,14 +28,14 @@ export function DateField({ label, value, onChange }: Props) {
 
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => setOpen(true)}
-        style={styles.button}
-      >
-        <Text style={styles.buttonText}>{value.toLocaleDateString()}</Text>
-      </Pressable>
+      <TextInput
+        mode="outlined"
+        label={label}
+        value={value.toLocaleDateString()}
+        editable={false}
+        onPressIn={() => setOpen(true)}
+        right={<TextInput.Icon icon="calendar" onPress={() => setOpen(true)} />}
+      />
       {open ? (
         <DateTimePicker
           value={value}
@@ -44,26 +45,15 @@ export function DateField({ label, value, onChange }: Props) {
         />
       ) : null}
       {open && Platform.OS === 'ios' ? (
-        <Pressable onPress={() => setOpen(false)} style={styles.done}>
-          <Text style={styles.doneText}>OK</Text>
-        </Pressable>
+        <Button mode="text" onPress={() => setOpen(false)} style={styles.done}>
+          OK
+        </Button>
       ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  field: { gap: spacing.xs, marginBottom: spacing.md },
-  label: { ...typography.label, color: colors.text },
-  button: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-  },
-  buttonText: { ...typography.body, color: colors.text },
-  done: { alignSelf: 'flex-end', paddingVertical: spacing.xs },
-  doneText: { ...typography.label, color: colors.primary },
+  field: { marginBottom: spacing.md },
+  done: { alignSelf: 'flex-end' },
 });

@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { List, Surface, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export type SearchSelectOption = {
   id: string;
@@ -73,42 +74,40 @@ export function SearchSelect({
         autoCapitalize="none"
       />
       {open && !disabled ? (
-        <View style={styles.dropdown}>
+        <Surface style={styles.dropdown} elevation={2}>
           <ScrollView keyboardShouldPersistTaps="handled" style={styles.dropdownScroll}>
             {showCreate ? (
-              <Pressable
+              <List.Item
+                title={query.trim()}
+                description={t('useNewShopName')}
                 onPress={() => {
-                  const label = query.trim();
-                  onSelect({ id: '', label });
-                  setQuery(label);
+                  const nextLabel = query.trim();
+                  onSelect({ id: '', label: nextLabel });
+                  setQuery(nextLabel);
                   setOpen(false);
                 }}
-                style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-              >
-                <Text style={styles.optionLabel}>{query.trim()}</Text>
-                <Text style={styles.optionDetail}>{t('useNewShopName')}</Text>
-              </Pressable>
+              />
             ) : null}
             {filtered.length === 0 && !showCreate ? (
-              <Text style={styles.empty}>{t('noMatches')}</Text>
+              <Text variant="bodySmall" style={styles.empty}>
+                {t('noMatches')}
+              </Text>
             ) : (
               filtered.map((option) => (
-                <Pressable
+                <List.Item
                   key={option.id}
+                  title={option.label}
+                  description={option.detail}
                   onPress={() => {
                     onSelect(option);
                     setQuery(option.label);
                     setOpen(false);
                   }}
-                  style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
-                >
-                  <Text style={styles.optionLabel}>{option.label}</Text>
-                  {option.detail ? <Text style={styles.optionDetail}>{option.detail}</Text> : null}
-                </Pressable>
+                />
               ))
             )}
           </ScrollView>
-        </View>
+        </Surface>
       ) : null}
     </View>
   );
@@ -119,25 +118,13 @@ const styles = StyleSheet.create({
   dropdown: {
     marginTop: -spacing.sm,
     marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radii.md,
     backgroundColor: colors.surface,
     overflow: 'hidden',
     maxHeight: 220,
   },
   dropdownScroll: { maxHeight: 220 },
-  option: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  optionPressed: { backgroundColor: colors.surfaceMuted },
-  optionLabel: { ...typography.label, color: colors.text },
-  optionDetail: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
   empty: {
-    ...typography.caption,
     color: colors.textMuted,
     padding: spacing.md,
   },

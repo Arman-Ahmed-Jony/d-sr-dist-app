@@ -1,6 +1,7 @@
 import { createElement } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { StyleSheet, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
+import { colors, spacing } from '@/src/theme/tokens';
 
 type Props = {
   label: string;
@@ -18,43 +19,36 @@ function toInputDate(date: Date): string {
 export function DateField({ label, value, onChange }: Props) {
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.webInputWrap}>
-        {createElement('input', {
-          type: 'date',
-          value: toInputDate(value),
-          onChange: (event: { target: { value: string } }) => {
-            const next = event.target.value;
-            const [year, month, day] = next.split('-').map(Number);
-            if (!year || !month || !day) return;
-            onChange(new Date(year, month - 1, day));
-          },
-          style: webInputStyle,
-        })}
-      </View>
+      <TextInput
+        mode="outlined"
+        label={label}
+        value={toInputDate(value)}
+        render={(innerProps) =>
+          createElement('input', {
+            type: 'date',
+            value: toInputDate(value),
+            onChange: (event: { target: { value: string } }) => {
+              const next = event.target.value;
+              const [year, month, day] = next.split('-').map(Number);
+              if (!year || !month || !day) return;
+              onChange(new Date(year, month - 1, day));
+            },
+            style: {
+              ...(typeof innerProps.style === 'object' && innerProps.style ? innerProps.style : {}),
+              width: '100%',
+              border: 'none',
+              background: 'transparent',
+              fontSize: 16,
+              color: colors.text,
+              outline: 'none',
+            },
+          })
+        }
+      />
     </View>
   );
 }
 
-const webInputStyle = {
-  width: '100%',
-  border: 'none',
-  background: 'transparent',
-  fontSize: 16,
-  color: colors.text,
-  padding: 0,
-  outline: 'none',
-} as const;
-
 const styles = StyleSheet.create({
-  field: { gap: spacing.xs, marginBottom: spacing.md },
-  label: { ...typography.label, color: colors.text },
-  webInputWrap: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    borderRadius: radii.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 10,
-  },
+  field: { marginBottom: spacing.md },
 });

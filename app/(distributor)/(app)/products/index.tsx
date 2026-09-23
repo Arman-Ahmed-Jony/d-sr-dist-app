@@ -1,20 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Chip, List, Searchbar, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listProductsByDistributor } from '@/src/data/repos/productsRepo';
 import type { Product } from '@/src/domain/types';
-import { AppButton, AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { AppButton } from '@/src/ui/Form';
+import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export default function ProductListScreen() {
   const { t } = useTranslation();
@@ -69,8 +62,10 @@ export default function ProductListScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -81,15 +76,20 @@ export default function ProductListScreen() {
         <AppButton title={t('createProduct')} style={styles.createBtn} />
       </Link>
 
-      <AppInput
-        label={t('searchProducts')}
+      <Searchbar
+        placeholder={t('searchProducts')}
         value={search}
         onChangeText={setSearch}
         autoCapitalize="none"
         autoCorrect={false}
+        style={styles.search}
       />
 
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text variant="bodyMedium" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
 
       <FlatList
         style={styles.listFlex}
@@ -100,33 +100,22 @@ export default function ProductListScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />
         }
         ListEmptyComponent={
-          <Text style={styles.muted}>{t('emptyProductList')}</Text>
+          <Text variant="bodyMedium" style={styles.muted}>
+            {t('emptyProductList')}
+          </Text>
         }
         renderItem={({ item }) => (
           <Link href={`/(distributor)/(app)/products/${item.id}`} asChild>
-            <Pressable style={styles.row}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowMeta}>
-                  {t('pricePerCase')}: {item.pricePerCase}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.badge,
-                  item.active ? styles.badgeActive : styles.badgeInactive,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.badgeText,
-                    item.active ? styles.badgeTextActive : styles.badgeTextInactive,
-                  ]}
-                >
+            <List.Item
+              title={item.name}
+              description={`${t('pricePerCase')}: ${item.pricePerCase}`}
+              style={styles.row}
+              right={() => (
+                <Chip compact style={styles.badge}>
                   {item.active ? t('active') : t('inactive')}
-                </Text>
-              </View>
-            </Pressable>
+                </Chip>
+              )}
+            />
           </Link>
         )}
       />
@@ -148,32 +137,18 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   createBtn: { marginBottom: spacing.md },
+  search: { marginBottom: spacing.md },
   listFlex: { flex: 1 },
-  list: { gap: spacing.sm, paddingBottom: spacing.xl },
+  list: { paddingBottom: spacing.xl },
   emptyContainer: { flexGrow: 1, justifyContent: 'center' },
   row: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  rowText: { flex: 1, gap: spacing.xs },
-  rowName: { ...typography.label, color: colors.text },
-  rowMeta: { ...typography.caption, color: colors.textMuted },
-  badge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderRadius: radii.sm,
-  },
-  badgeActive: { backgroundColor: '#E3F2E9' },
-  badgeInactive: { backgroundColor: colors.surfaceMuted },
-  badgeText: { ...typography.caption, fontWeight: '600' },
-  badgeTextActive: { color: colors.success },
-  badgeTextInactive: { color: colors.textMuted },
-  muted: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
-  error: { ...typography.body, color: colors.danger, marginBottom: spacing.md },
+  badge: { alignSelf: 'center' },
+  muted: { color: colors.textMuted, textAlign: 'center' },
+  error: { color: colors.danger, marginBottom: spacing.md },
 });

@@ -1,18 +1,12 @@
 import { useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
+import { Card, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { createShop } from '@/src/data/repos/shopsRepo';
 import { AppButton, AppInput } from '@/src/ui/Form';
-import { colors, radii, spacing } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 type Props = {
   listHref: '/(distributor)/(app)/shops' | '/(sr)/(app)/shops';
@@ -66,35 +60,41 @@ export function ShopCreateView({ listHref }: Props) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.form}>
-          <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
-          <AppInput
-            label={t('ownerName')}
-            value={ownerName}
-            onChangeText={setOwnerName}
-            autoCapitalize="words"
-          />
-          <AppInput
-            label={t('phone')}
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
-          <AppInput label={t('area')} value={area} onChangeText={setArea} />
-          <AppInput
-            label={t('address')}
-            value={address}
-            onChangeText={setAddress}
-            multiline
-            style={styles.multiline}
-          />
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <AppButton
-            title={submitting ? t('loading') : t('createShop')}
-            onPress={onSubmit}
-            disabled={submitting}
-          />
-        </View>
+        <Card mode="outlined">
+          <Card.Content>
+            <AppInput label={t('name')} value={name} onChangeText={setName} autoCapitalize="words" />
+            <AppInput
+              label={t('ownerName')}
+              value={ownerName}
+              onChangeText={setOwnerName}
+              autoCapitalize="words"
+            />
+            <AppInput
+              label={t('phone')}
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
+            <AppInput label={t('area')} value={area} onChangeText={setArea} />
+            <AppInput
+              label={t('address')}
+              value={address}
+              onChangeText={setAddress}
+              multiline
+              style={styles.multiline}
+            />
+            {error ? (
+              <Text variant="bodyMedium" style={styles.error}>
+                {error}
+              </Text>
+            ) : null}
+            <AppButton
+              title={submitting ? t('loading') : t('createShop')}
+              onPress={onSubmit}
+              disabled={submitting}
+            />
+          </Card.Content>
+        </Card>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -103,13 +103,6 @@ export function ShopCreateView({ listHref }: Props) {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, padding: spacing.lg, paddingBottom: spacing.xl },
-  form: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
   multiline: {
     minHeight: 88,
     textAlignVertical: 'top',

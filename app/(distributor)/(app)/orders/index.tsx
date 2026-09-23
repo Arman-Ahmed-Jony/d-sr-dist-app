@@ -1,19 +1,13 @@
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { ActivityIndicator, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listOrdersByDistributor } from '@/src/data/repos/ordersRepo';
 import type { Order } from '@/src/domain/types';
 import { DistributorOrdersView } from '@/src/ui/orders/DistributorOrdersView';
-import { colors, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 export default function DistributorOrderTableScreen() {
   const { t } = useTranslation();
@@ -48,8 +42,10 @@ export default function DistributorOrderTableScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -70,7 +66,11 @@ export default function DistributorOrderTableScreen() {
         />
       }
     >
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text variant="bodyMedium" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
       <DistributorOrdersView orders={orders} />
     </ScrollView>
   );
@@ -86,6 +86,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  muted: { ...typography.body, color: colors.textMuted },
-  error: { ...typography.body, color: colors.danger, marginBottom: spacing.md },
+  muted: { color: colors.textMuted },
+  error: { color: colors.danger, marginBottom: spacing.md },
 });

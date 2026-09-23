@@ -1,20 +1,13 @@
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { Link, useFocusEffect } from 'expo-router';
+import { ActivityIndicator, List, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listOrdersBySr } from '@/src/data/repos/ordersRepo';
 import type { Order } from '@/src/domain/types';
 import { AppButton } from '@/src/ui/Form';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, radii, spacing } from '@/src/theme/tokens';
 
 export default function SrOrderListScreen() {
   const { t } = useTranslation();
@@ -49,8 +42,10 @@ export default function SrOrderListScreen() {
   if (loading && !refreshing) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -60,7 +55,11 @@ export default function SrOrderListScreen() {
       <Link href="/(sr)/(app)/orders/create" asChild>
         <AppButton title={t('createOrder')} style={styles.createBtn} />
       </Link>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {error ? (
+        <Text variant="bodyMedium" style={styles.error}>
+          {error}
+        </Text>
+      ) : null}
       <FlatList
         style={styles.listFlex}
         data={orders}
@@ -76,21 +75,21 @@ export default function SrOrderListScreen() {
             tintColor={colors.primary}
           />
         }
-        ListEmptyComponent={<Text style={styles.muted}>{t('emptyOrderList')}</Text>}
+        ListEmptyComponent={
+          <Text variant="bodyMedium" style={styles.muted}>
+            {t('emptyOrderList')}
+          </Text>
+        }
         renderItem={({ item }) => (
           <Link
             href={{ pathname: '/(sr)/(app)/orders/[id]', params: { id: item.id } }}
             asChild
           >
-            <Pressable style={styles.row}>
-              <Text style={styles.rowName}>{item.shopName}</Text>
-              <Text style={styles.rowMeta}>
-                {item.orderDate.toLocaleDateString()} · {item.status}
-              </Text>
-              <Text style={styles.rowMeta}>
-                {item.lines.length} {t('lines')} · {item.orderTotal}
-              </Text>
-            </Pressable>
+            <List.Item
+              title={item.shopName}
+              description={`${item.orderDate.toLocaleDateString()} · ${item.status}\n${item.lines.length} ${t('lines')} · ${item.orderTotal}`}
+              style={styles.row}
+            />
           </Link>
         )}
       />
@@ -120,11 +119,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radii.md,
-    padding: spacing.md,
     marginBottom: spacing.sm,
   },
-  rowName: { ...typography.label, color: colors.text },
-  rowMeta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
-  muted: { ...typography.body, color: colors.textMuted, textAlign: 'center' },
-  error: { ...typography.body, color: colors.danger, marginBottom: spacing.md },
+  muted: { color: colors.textMuted, textAlign: 'center' },
+  error: { color: colors.danger, marginBottom: spacing.md },
 });

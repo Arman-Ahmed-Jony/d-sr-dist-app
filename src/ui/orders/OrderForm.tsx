@@ -1,14 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
+import { ActivityIndicator, Card, SegmentedButtons, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { createOrder, updateOrder } from '@/src/data/repos/ordersRepo';
@@ -21,7 +14,7 @@ import type { LineAdjustmentMode, Order, Product, Shop } from '@/src/domain/type
 import { AppButton, AppInput } from '@/src/ui/Form';
 import { SearchSelect } from '@/src/ui/SearchSelect';
 import { DateField } from '@/src/ui/DateField';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 type DraftLine = {
   key: string;
@@ -235,7 +228,10 @@ export function OrderForm({ order }: Props) {
   if (loading) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.muted}>{t('loading')}</Text>
+        <ActivityIndicator />
+        <Text variant="bodyMedium" style={styles.muted}>
+          {t('loading')}
+        </Text>
       </View>
     );
   }
@@ -251,7 +247,8 @@ export function OrderForm({ order }: Props) {
         contentContainerStyle={styles.container}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.form}>
+        <Card mode="outlined" style={styles.form}>
+          <Card.Content>
           <SearchSelect
             label={t('shop')}
             placeholder={t('searchSelectShop')}
@@ -282,7 +279,9 @@ export function OrderForm({ order }: Props) {
           />
           {isNewShop ? (
             <View style={styles.newShop}>
-              <Text style={styles.newShopHint}>{t('newShopHint')}</Text>
+              <Text variant="bodySmall" style={styles.newShopHint}>
+                {t('newShopHint')}
+              </Text>
               <AppInput
                 label={`${t('ownerName')} (${t('optional')})`}
                 value={ownerName}
@@ -302,19 +301,20 @@ export function OrderForm({ order }: Props) {
             </View>
           ) : null}
 
-          <Text style={styles.meta}>
+          <Text variant="bodySmall" style={styles.meta}>
             {t('srName')}: {profile?.name}
           </Text>
-          <Text style={styles.meta}>
+          <Text variant="bodySmall" style={styles.meta}>
             {t('distributorName')}: {profile?.distributorId}
           </Text>
-          <Text style={styles.meta}>
+          <Text variant="bodySmall" style={styles.meta}>
             {t('status')}: {order?.status ?? 'submitted'}
           </Text>
 
           <DateField label={t('orderDate')} value={orderDate} onChange={setOrderDate} />
           <DateField label={t('deliveryDate')} value={deliveryDate} onChange={setDeliveryDate} />
-        </View>
+          </Card.Content>
+        </Card>
 
         {lines.map((line, index) => {
           const product = productsById.get(line.productId);
@@ -325,8 +325,9 @@ export function OrderForm({ order }: Props) {
           const available = products.filter((item) => !usedIds.has(item.id) || item.id === line.productId);
 
           return (
-            <View key={line.key} style={styles.lineCard}>
-              <Text style={styles.lineTitle}>
+            <Card key={line.key} mode="outlined" style={styles.lineCard}>
+              <Card.Content>
+              <Text variant="labelLarge" style={styles.lineTitle}>
                 {t('lines')} {index + 1}
               </Text>
               <SearchSelect
@@ -355,7 +356,7 @@ export function OrderForm({ order }: Props) {
                   });
                 }}
               />
-              <Text style={styles.meta}>
+              <Text variant="bodySmall" style={styles.meta}>
                 {t('pricePerCase')}: {product?.pricePerCase ?? '—'}
               </Text>
               <AppInput
@@ -365,42 +366,21 @@ export function OrderForm({ order }: Props) {
                 keyboardType="decimal-pad"
               />
 
-              <View style={styles.toggleRow}>
-                <Pressable
-                  onPress={() => updateLine(line.key, { adjustmentMode: 'discountAmount' })}
-                  style={[
-                    styles.toggle,
-                    line.adjustmentMode === 'discountAmount' && styles.toggleActive,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      line.adjustmentMode === 'discountAmount' && styles.toggleTextActive,
-                    ]}
-                  >
-                    {t('discountAmount')}
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() =>
-                    updateLine(line.key, {
-                      adjustmentMode: 'freePcs',
-                      freeProductId: line.freeProductId || line.productId,
-                    })
-                  }
-                  style={[styles.toggle, line.adjustmentMode === 'freePcs' && styles.toggleActive]}
-                >
-                  <Text
-                    style={[
-                      styles.toggleText,
-                      line.adjustmentMode === 'freePcs' && styles.toggleTextActive,
-                    ]}
-                  >
-                    {t('freePcs')}
-                  </Text>
-                </Pressable>
-              </View>
+              <SegmentedButtons
+                value={line.adjustmentMode}
+                onValueChange={(value) =>
+                  updateLine(line.key, {
+                    adjustmentMode: value as LineAdjustmentMode,
+                    freeProductId:
+                      value === 'freePcs' ? line.freeProductId || line.productId : line.freeProductId,
+                  })
+                }
+                buttons={[
+                  { value: 'discountAmount', label: t('discountAmount') },
+                  { value: 'freePcs', label: t('freePcs') },
+                ]}
+                style={styles.toggleRow}
+              />
 
               {line.adjustmentMode === 'freePcs' ? (
                 <SearchSelect
@@ -432,7 +412,7 @@ export function OrderForm({ order }: Props) {
                 onChangeText={(text) => updateLine(line.key, { adjustmentValue: text })}
                 keyboardType="decimal-pad"
               />
-              <Text style={styles.lineTotal}>
+              <Text variant="labelLarge" style={styles.lineTotal}>
                 {t('lineTotal')}: {lineTotals[index]}
               </Text>
               {lines.length > 1 ? (
@@ -442,7 +422,8 @@ export function OrderForm({ order }: Props) {
                   onPress={() => setLines((current) => current.filter((item) => item.key !== line.key))}
                 />
               ) : null}
-            </View>
+              </Card.Content>
+            </Card>
           );
         })}
 
@@ -453,11 +434,17 @@ export function OrderForm({ order }: Props) {
           style={styles.addLine}
         />
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text variant="bodyMedium" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
 
         <View style={styles.totalBar}>
-          <Text style={styles.totalLabel}>{t('orderTotal')}</Text>
-          <Text style={styles.totalValue}>{orderTotal}</Text>
+          <Text variant="titleMedium">{t('orderTotal')}</Text>
+          <Text variant="titleMedium" style={styles.totalValue}>
+            {orderTotal}
+          </Text>
         </View>
 
         <AppButton
@@ -478,48 +465,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.background,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
   },
-  form: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
+  form: { marginBottom: spacing.md },
   newShop: {
     borderWidth: 1,
     borderColor: colors.border,
-    borderRadius: radii.md,
+    borderRadius: 10,
     padding: spacing.md,
     marginBottom: spacing.md,
     backgroundColor: colors.surfaceMuted,
   },
-  newShopHint: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.sm },
-  meta: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.sm },
-  muted: { ...typography.body, color: colors.textMuted },
-  lineCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    marginBottom: spacing.md,
-  },
-  lineTitle: { ...typography.label, color: colors.primary, marginBottom: spacing.sm },
-  toggleRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
-  toggle: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    paddingVertical: spacing.sm,
-    alignItems: 'center',
-  },
-  toggleActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  toggleText: { ...typography.label, color: colors.text },
-  toggleTextActive: { color: colors.white },
-  lineTotal: { ...typography.label, color: colors.text, marginBottom: spacing.sm },
+  newShopHint: { color: colors.textMuted, marginBottom: spacing.sm },
+  meta: { color: colors.textMuted, marginBottom: spacing.sm },
+  muted: { color: colors.textMuted },
+  lineCard: { marginBottom: spacing.md },
+  lineTitle: { color: colors.primary, marginBottom: spacing.sm },
+  toggleRow: { marginBottom: spacing.md },
+  lineTotal: { color: colors.text, marginBottom: spacing.sm },
   addLine: { marginBottom: spacing.md },
   error: { color: colors.danger, marginBottom: spacing.md },
   totalBar: {
@@ -529,6 +492,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     marginBottom: spacing.md,
   },
-  totalLabel: { ...typography.heading, color: colors.text },
-  totalValue: { ...typography.heading, color: colors.primary },
+  totalValue: { color: colors.primary },
 });

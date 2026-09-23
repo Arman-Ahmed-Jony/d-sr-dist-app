@@ -1,13 +1,14 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 import {
   DrawerContentScrollView,
   type DrawerContentComponentProps,
 } from 'expo-router/drawer';
+import { Drawer, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { LanguageToggle } from '@/src/ui/LanguageToggle';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 export function DistributorDrawerContent(props: DrawerContentComponentProps) {
   const { t } = useTranslation();
@@ -16,29 +17,16 @@ export function DistributorDrawerContent(props: DrawerContentComponentProps) {
 
   const close = () => navigation.closeDrawer();
 
-  const goDashboard = () => {
+  const go = (
+    href:
+      | '/(distributor)/(app)/dashboard'
+      | '/(distributor)/(app)/srs'
+      | '/(distributor)/(app)/products'
+      | '/(distributor)/(app)/shops'
+      | '/(distributor)/(app)/orders',
+  ) => {
     close();
-    router.push('/(distributor)/(app)/dashboard');
-  };
-
-  const goManageSrs = () => {
-    close();
-    router.push('/(distributor)/(app)/srs');
-  };
-
-  const goProducts = () => {
-    close();
-    router.push('/(distributor)/(app)/products');
-  };
-
-  const goShops = () => {
-    close();
-    router.push('/(distributor)/(app)/shops');
-  };
-
-  const goOrders = () => {
-    close();
-    router.push('/(distributor)/(app)/orders');
+    router.push(href);
   };
 
   const onLogout = async () => {
@@ -53,63 +41,55 @@ export function DistributorDrawerContent(props: DrawerContentComponentProps) {
       style={styles.drawer}
     >
       <View style={styles.header}>
-        <Text style={styles.appName}>{t('appName')}</Text>
-        {profile?.name ? <Text style={styles.userName}>{profile.name}</Text> : null}
-        {profile?.email ? <Text style={styles.userEmail}>{profile.email}</Text> : null}
+        <Text variant="titleLarge" style={styles.appName}>
+          {t('appName')}
+        </Text>
+        {profile?.name ? (
+          <Text variant="labelLarge" style={styles.userName}>
+            {profile.name}
+          </Text>
+        ) : null}
+        {profile?.email ? (
+          <Text variant="bodySmall" style={styles.userEmail}>
+            {profile.email}
+          </Text>
+        ) : null}
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={goDashboard}
-        style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-      >
-        <Text style={styles.itemLabel}>{t('dashboard')}</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={goProducts}
-        style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-      >
-        <Text style={styles.itemLabel}>{t('products')}</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={goShops}
-        style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-      >
-        <Text style={styles.itemLabel}>{t('shops')}</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={goOrders}
-        style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-      >
-        <Text style={styles.itemLabel}>{t('orders')}</Text>
-      </Pressable>
-
-      <Pressable
-        accessibilityRole="button"
-        onPress={goManageSrs}
-        style={({ pressed }) => [styles.item, pressed && styles.pressed]}
-      >
-        <Text style={styles.itemLabel}>{t('manageSrs')}</Text>
-      </Pressable>
+      <Drawer.Section>
+        <Drawer.Item
+          label={t('dashboard')}
+          icon="view-dashboard-outline"
+          onPress={() => go('/(distributor)/(app)/dashboard')}
+        />
+        <Drawer.Item
+          label={t('products')}
+          icon="package-variant"
+          onPress={() => go('/(distributor)/(app)/products')}
+        />
+        <Drawer.Item
+          label={t('shops')}
+          icon="storefront-outline"
+          onPress={() => go('/(distributor)/(app)/shops')}
+        />
+        <Drawer.Item
+          label={t('orders')}
+          icon="clipboard-list-outline"
+          onPress={() => go('/(distributor)/(app)/orders')}
+        />
+        <Drawer.Item
+          label={t('manageSrs')}
+          icon="account-group-outline"
+          onPress={() => go('/(distributor)/(app)/srs')}
+        />
+      </Drawer.Section>
 
       <View style={styles.itemRow}>
-        <Text style={styles.itemLabel}>{t('language')}</Text>
+        <Text variant="labelLarge">{t('language')}</Text>
         <LanguageToggle />
       </View>
 
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => void onLogout()}
-        style={({ pressed }) => [styles.item, styles.logoutItem, pressed && styles.pressed]}
-      >
-        <Text style={styles.logoutLabel}>{t('logout')}</Text>
-      </Pressable>
+      <Drawer.Item label={t('logout')} icon="logout" onPress={() => void onLogout()} />
     </DrawerContentScrollView>
   );
 }
@@ -124,25 +104,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  appName: { ...typography.heading, color: colors.primary },
-  userName: { ...typography.label, color: colors.text, marginTop: spacing.sm },
-  userEmail: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
-  item: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radii.md,
-    marginHorizontal: spacing.sm,
-  },
+  appName: { color: colors.primary },
+  userName: { color: colors.text, marginTop: spacing.sm },
+  userEmail: { color: colors.textMuted, marginTop: spacing.xs },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    marginHorizontal: spacing.sm,
+    gap: spacing.sm,
   },
-  itemLabel: { ...typography.label, color: colors.text },
-  logoutItem: { marginTop: spacing.md },
-  logoutLabel: { ...typography.label, color: colors.danger },
-  pressed: { backgroundColor: colors.surfaceMuted },
 });

@@ -1,11 +1,12 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
+import { DataTable, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type {
   OrderTableGroup,
   OrderTableRow,
   OrderTableView,
 } from '@/src/domain/orderTable';
-import { colors, radii, spacing, typography } from '@/src/theme/tokens';
+import { colors, spacing } from '@/src/theme/tokens';
 
 type Column = {
   key: string;
@@ -22,6 +23,13 @@ type Props = {
 function formatAmount(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
 }
+
+const cellStyle = (width: number) => ({
+  width,
+  flexGrow: 0,
+  flexShrink: 0,
+  maxWidth: width,
+});
 
 export function OrderDataTable({ view, groups }: Props) {
   const { t } = useTranslation();
@@ -82,20 +90,22 @@ export function OrderDataTable({ view, groups }: Props) {
 
   return (
     <ScrollView horizontal style={styles.horizontal}>
-      <View style={[styles.table, { width: tableWidth }]}>
-        <View style={[styles.row, styles.headerRow]}>
+      <DataTable style={[styles.table, { width: tableWidth }]}>
+        <DataTable.Header>
           {columns.map((column) => (
-            <Text key={column.key} style={[styles.headerCell, { width: column.width }]}>
+            <DataTable.Title key={column.key} style={cellStyle(column.width)}>
               {column.label}
-            </Text>
+            </DataTable.Title>
           ))}
-        </View>
+        </DataTable.Header>
         {groups.map((group) => (
           <View key={group.key}>
             {group.label ? (
               <View style={[styles.groupRow, { width: tableWidth }]}>
-                <Text style={styles.groupLabel}>{group.label}</Text>
-                <Text style={styles.groupMeta}>
+                <Text variant="labelLarge" style={styles.groupLabel}>
+                  {group.label}
+                </Text>
+                <Text variant="bodySmall" style={styles.groupMeta}>
                   {t('totalCases')} {formatAmount(group.totals.cases)} · {t('totalFreePcs')}{' '}
                   {formatAmount(group.totals.freePcs)} · {t('totalMoney')}{' '}
                   {formatAmount(group.totals.money)}
@@ -103,57 +113,29 @@ export function OrderDataTable({ view, groups }: Props) {
               </View>
             ) : null}
             {group.rows.map((row) => (
-              <View key={row.id} style={styles.row}>
+              <DataTable.Row key={row.id}>
                 {columns.map((column) => (
-                  <Text key={column.key} style={[styles.cell, { width: column.width }]} numberOfLines={2}>
+                  <DataTable.Cell key={column.key} style={cellStyle(column.width)}>
                     {column.value(row)}
-                  </Text>
+                  </DataTable.Cell>
                 ))}
-              </View>
+              </DataTable.Row>
             ))}
           </View>
         ))}
-      </View>
+      </DataTable>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   horizontal: { marginBottom: spacing.md },
-  table: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    overflow: 'hidden',
-    backgroundColor: colors.surface,
-  },
-  row: {
-    flexDirection: 'row',
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-    alignItems: 'center',
-  },
-  headerRow: { backgroundColor: colors.surfaceMuted },
-  headerCell: {
-    ...typography.caption,
-    color: colors.text,
-    fontWeight: '700',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
-  cell: {
-    ...typography.caption,
-    color: colors.text,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.sm,
-  },
+  table: { backgroundColor: colors.surface },
   groupRow: {
     backgroundColor: colors.background,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
-  groupLabel: { ...typography.label, color: colors.primary },
-  groupMeta: { ...typography.caption, color: colors.textMuted, marginTop: 2 },
+  groupLabel: { color: colors.primary },
+  groupMeta: { color: colors.textMuted, marginTop: 2 },
 });
