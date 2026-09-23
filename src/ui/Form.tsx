@@ -57,7 +57,14 @@ type AppInputProps = {
 };
 
 export function AppInput({ style, ...rest }: AppInputProps) {
-  return <TextInput mode="outlined" dense={false} style={[styles.field, style]} {...rest} />;
+  return (
+    <TextInput
+      mode="outlined"
+      dense={false}
+      style={StyleSheet.flatten([styles.field, style])}
+      {...rest}
+    />
+  );
 }
 
 const styles = StyleSheet.create({

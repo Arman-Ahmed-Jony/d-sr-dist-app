@@ -16,6 +16,16 @@ function toInputDate(date: Date): string {
   return `${y}-${m}-${d}`;
 }
 
+const webInputStyle = {
+  width: '100%',
+  border: 'none',
+  background: 'transparent',
+  fontSize: 16,
+  color: colors.text,
+  padding: 16,
+  outline: 'none',
+} as const;
+
 export function DateField({ label, value, onChange }: Props) {
   return (
     <View style={styles.field}>
@@ -23,7 +33,7 @@ export function DateField({ label, value, onChange }: Props) {
         mode="outlined"
         label={label}
         value={toInputDate(value)}
-        render={(innerProps) =>
+        render={() =>
           createElement('input', {
             type: 'date',
             value: toInputDate(value),
@@ -33,15 +43,7 @@ export function DateField({ label, value, onChange }: Props) {
               if (!year || !month || !day) return;
               onChange(new Date(year, month - 1, day));
             },
-            style: {
-              ...(typeof innerProps.style === 'object' && innerProps.style ? innerProps.style : {}),
-              width: '100%',
-              border: 'none',
-              background: 'transparent',
-              fontSize: 16,
-              color: colors.text,
-              outline: 'none',
-            },
+            style: webInputStyle,
           })
         }
       />
