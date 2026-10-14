@@ -1,7 +1,7 @@
 import type { Order, OrderLine } from '@/src/domain/types';
 
 export const INVOICE_PRODUCT_ROWS = 10;
-export const INVOICE_ENTRIES_PER_PAGE = 3;
+export const INVOICE_ENTRIES_PER_PAGE = 4;
 export const INVOICE_COLUMNS_PER_ENTRY = 5;
 
 const HEADER_ROW = 5;
@@ -13,12 +13,12 @@ const SHOP_GAP_ROWS = 1;
 
 const COLUMN_WIDTHS = [22, 11, 11, 12, 12];
 const BLOCK_ROW_HEIGHTS = [
-  14, 14, 14, 14, 6, 16,
-  ...Array<number>(INVOICE_PRODUCT_ROWS).fill(13),
-  16,
-  24,
+  11, 11, 11, 11, 4, 12,
+  ...Array<number>(INVOICE_PRODUCT_ROWS).fill(10),
+  12,
+  18,
 ];
-const SHOP_GAP_HEIGHT = 8;
+const SHOP_GAP_HEIGHT = 4;
 
 export type InvoiceCell = {
   value: string | number | null;

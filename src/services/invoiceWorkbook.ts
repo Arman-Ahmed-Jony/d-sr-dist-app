@@ -11,7 +11,7 @@ const border = { top: thin, bottom: thin, left: thin, right: thin };
 function cellStyleWithoutBorder(cell: InvoiceCell) {
   return {
     alignment: { vertical: 'center', horizontal: cell.align === 'right' ? 'right' : 'left', wrapText: true },
-    font: { name: 'Calibri', sz: 11, bold: Boolean(cell.bold) },
+    font: { name: 'Calibri', sz: 8, bold: Boolean(cell.bold) },
   };
 }
 
@@ -26,7 +26,7 @@ function cellStyle(cell: InvoiceCell) {
       horizontal,
       wrapText: true,
     },
-    font: { name: 'Calibri', sz: 11, bold: Boolean(cell.bold || cell.header) },
+    font: { name: 'Calibri', sz: 8, bold: Boolean(cell.bold || cell.header) },
     fill: cell.header ? { patternType: 'solid', fgColor: { rgb: 'E4EFE6' } } : undefined,
   };
 }
