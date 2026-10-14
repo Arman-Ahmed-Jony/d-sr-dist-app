@@ -35,7 +35,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#F3F7F1"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
@@ -47,7 +48,11 @@
       "firebaseStorageBucket": "sr-dist-app.firebasestorage.app",
       "firebaseMessagingSenderId": "1038865149096",
       "firebaseAppId": "1:1038865149096:web:280e52a5fc36376c39a69d",
-      "useFirebaseEmulator": false
+      "useFirebaseEmulator": false,
+      "router": {},
+      "eas": {
+        "projectId": "86eadd70-adf1-459e-ad50-0b5bc482eaa9"
+      }
     }
   }
 }
