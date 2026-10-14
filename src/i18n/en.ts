@@ -144,4 +144,6 @@ export const en: Record<TranslationKey, string> = {
   quickTodayOrders: "Today's orders",
   quickPreviousOrders: 'Previous orders',
   totalValue: 'Total value',
+  downloadExcel: 'Download Excel',
+  errorExportInvoice: 'Could not create the invoice file.',
 };

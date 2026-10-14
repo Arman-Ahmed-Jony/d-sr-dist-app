@@ -141,6 +141,8 @@ export const bn = {
   quickTodayOrders: 'আজকের অর্ডার',
   quickPreviousOrders: 'আগের দিনের অর্ডার',
   totalValue: 'মোট মূল্য',
+  downloadExcel: 'এক্সেল ডাউনলোড',
+  errorExportInvoice: 'ইনভয়েস ফাইল তৈরি করা যায়নি।',
 } as const;
 
 export type TranslationKey = keyof typeof bn;

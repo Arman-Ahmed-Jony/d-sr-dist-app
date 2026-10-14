@@ -4,6 +4,8 @@ import { Chip, Menu, Text } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
 import type { Order } from '@/src/domain/types';
+import { invoiceLineCount } from '@/src/domain/orderSheet';
+import { shareInvoice } from '@/src/services/shareInvoice';
 import {
   activeQuickFilter,
   filterOrders,
@@ -103,6 +105,8 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   const [sortKey, setSortKey] = useState<OrderTableSortKey>('orderDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [groupBy, setGroupBy] = useState<OrderTableGroupBy>('shop');
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const shops = useMemo(() => uniqueShops(orders), [orders]);
   const srs = useMemo(() => uniqueSrs(orders), [orders]);
@@ -169,6 +173,21 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   };
 
   const extraCount = extraFilterCount(filters, selectedQuickFilter);
+  const canExport = invoiceLineCount(filteredOrders, filters.productId) > 0;
+
+  const onDownloadInvoice = async () => {
+    if (!canExport || exporting) return;
+    setExporting(true);
+    setExportError(null);
+    try {
+      await shareInvoice(filteredOrders, filters.productId);
+    } catch (error) {
+      console.error('shareInvoice failed', error);
+      setExportError(t('errorExportInvoice'));
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const extraChips: ExtraChip[] = [];
   if (selectedShop) {
@@ -345,6 +364,33 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
         </View>
       </View>
 
+      <Pressable
+        onPress={() => {
+          void onDownloadInvoice();
+        }}
+        disabled={!canExport || exporting}
+        style={[styles.download, (!canExport || exporting) && styles.downloadDisabled]}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: !canExport || exporting }}
+      >
+        <MaterialCommunityIcons
+          name="file-excel-outline"
+          size={18}
+          color={!canExport || exporting ? colors.textMuted : colors.primary}
+        />
+        <Text
+          variant="bodyMedium"
+          style={[styles.downloadLabel, (!canExport || exporting) && styles.downloadLabelDisabled]}
+        >
+          {exporting ? t('loading') : t('downloadExcel')}
+        </Text>
+      </Pressable>
+      {exportError ? (
+        <Text variant="bodySmall" style={styles.exportError}>
+          {exportError}
+        </Text>
+      ) : null}
+
       {selectedQuickFilter ? (
         <View style={styles.summary}>
           <View style={styles.summaryIcon}>
@@ -501,6 +547,34 @@ const styles = StyleSheet.create({
   },
   filterCount: {
     color: colors.textMuted,
+  },
+  download: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    borderRadius: 14,
+    backgroundColor: colors.surface,
+  },
+  downloadDisabled: {
+    borderColor: colors.border,
+  },
+  downloadLabel: {
+    color: colors.primary,
+    fontWeight: '600',
+  },
+  downloadLabelDisabled: {
+    color: colors.textMuted,
+  },
+  exportError: {
+    color: colors.danger,
+    marginTop: -spacing.sm,
+    marginBottom: spacing.md,
   },
   summary: {
     flexDirection: 'row',
