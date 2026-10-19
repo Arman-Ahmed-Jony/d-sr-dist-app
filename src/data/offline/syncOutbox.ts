@@ -1,6 +1,6 @@
 import { createShop } from '@/src/data/repos/shopsRepo';
 import { pushOrderToServer, pushOrderUpdateToServer } from '@/src/data/repos/ordersRepo';
-import { deleteDoc, doc } from 'firebase/firestore';
+import { deleteDoc, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { db } from '@/src/data/firebase';
 import { getOutbox, isLocalId, replaceOutbox, type OutboxItem } from './outbox';
 import { isOfflineError } from './isOfflineError';
@@ -72,6 +72,23 @@ export async function flushOutbox(): Promise<void> {
         if (item.kind === 'deleteDraft') {
           if (isLocalId(item.orderId)) continue;
           await deleteDoc(doc(db, 'orders', item.orderId));
+          continue;
+        }
+        if (item.kind === 'assignDsr') {
+          await updateDoc(doc(db, 'orders', item.orderId), {
+            dsrId: item.dsrId,
+            dsrName: item.dsrName,
+            updatedAt: serverTimestamp(),
+          });
+          continue;
+        }
+        if (item.kind === 'recordDelivery') {
+          const order = item.preview;
+          await updateDoc(doc(db, 'orders', item.orderId), {
+            lines: order.lines,
+            status: order.status,
+            updatedAt: serverTimestamp(),
+          });
         }
       } catch (error) {
         if (isOfflineError(error)) {

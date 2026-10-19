@@ -67,7 +67,9 @@ service cloud.firestore {
         && line.freeProductId is string
         && line.freeProductName is string
         && line.lineTotal is number
-        && line.lineTotal >= 0;
+        && line.lineTotal >= 0
+        && (!('bouncedCases' in line) || (line.bouncedCases is number && line.bouncedCases >= 0 && line.bouncedCases <= line.quantityCases))
+        && (!('bouncedPcs' in line) || (line.bouncedPcs is number && line.bouncedPcs >= 0 && line.bouncedPcs <= line.quantityPcs));
     }
 
     // Firestore rules disallow recursion — unroll checks for up to 20 lines.
@@ -111,7 +113,7 @@ service cloud.firestore {
         (
           isActiveUser()
           && role() == 'distributor'
-          && request.resource.data.role == 'sr'
+          && (request.resource.data.role == 'sr' || request.resource.data.role == 'dsr')
           && request.resource.data.distributorId == distributorId()
         )
       );
@@ -126,7 +128,7 @@ service cloud.firestore {
           || (
             role() == 'distributor'
             && resource.data.distributorId == distributorId()
-            && resource.data.role == 'sr'
+            && (resource.data.role == 'sr' || resource.data.role == 'dsr')
             && onlyNameActiveUpdated()
           )
         );
@@ -144,7 +146,7 @@ service cloud.firestore {
         && resource.data.distributorId == distributorId();
 
       allow read: if isActiveUser()
-        && role() == 'sr'
+        && (role() == 'sr' || role() == 'dsr')
         && resource.data.distributorId == distributorId()
         && resource.data.active == true;
 
@@ -182,13 +184,13 @@ service cloud.firestore {
         && resource.data.distributorId == distributorId();
 
       allow create: if isActiveUser()
-        && (role() == 'sr' || role() == 'distributor')
+        && (role() == 'sr' || role() == 'dsr' || role() == 'distributor')
         && request.resource.data.distributorId == distributorId()
         && request.resource.data.createdBy == request.auth.uid
         && shopFieldsValid();
 
       allow update: if isActiveUser()
-        && (role() == 'sr' || role() == 'distributor')
+        && (role() == 'sr' || role() == 'dsr' || role() == 'distributor')
         && resource.data.distributorId == distributorId()
         && request.resource.data.distributorId == resource.data.distributorId
         && request.resource.data.createdBy == resource.data.createdBy
@@ -208,8 +210,18 @@ service cloud.firestore {
         && role() == 'sr'
         && resource.data.distributorId == distributorId();
 
+      allow read: if isActiveUser()
+        && role() == 'dsr'
+        && resource.data.distributorId == distributorId()
+        && resource.data.dsrId == request.auth.uid;
+
+      allow read: if isActiveUser()
+        && role() == 'dsr'
+        && resource.data.distributorId == distributorId()
+        && resource.data.srId == request.auth.uid;
+
       allow create: if isActiveUser()
-        && role() == 'sr'
+        && (role() == 'sr' || role() == 'dsr')
         && request.resource.data.distributorId == distributorId()
         && request.resource.data.srId == request.auth.uid
         && request.resource.data.shopId is string
@@ -222,7 +234,7 @@ service cloud.firestore {
         && orderLinesValid();
 
       allow update: if isActiveUser()
-        && role() == 'sr'
+        && (role() == 'sr' || role() == 'dsr')
         && resource.data.srId == request.auth.uid
         && resource.data.distributorId == distributorId()
         && request.resource.data.srId == resource.data.srId
@@ -236,11 +248,39 @@ service cloud.firestore {
         && request.resource.data.orderTotal >= 0
         && orderLinesValid();
 
+      allow update: if isActiveUser()
+        && role() == 'dsr'
+        && resource.data.dsrId == request.auth.uid
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.dsrId == resource.data.dsrId
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.srId == resource.data.srId
+        && request.resource.data.status in ['delivered', 'cancelled', 'bounced', 'partial']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lines', 'updatedAt'])
+        && orderLinesValid();
+
+      allow update: if isActiveUser()
+        && role() == 'distributor'
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.dsrId is string
+        && request.resource.data.dsrName is string
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['dsrId', 'dsrName', 'updatedAt']);
+
+      allow update: if isActiveUser()
+        && role() == 'distributor'
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.srId == resource.data.srId
+        && request.resource.data.status in ['submitted', 'confirmed', 'cancelled', 'delivered', 'bounced']
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lines', 'updatedAt'])
+        && orderLinesValid();
+
       allow delete: if isActiveUser()
         && resource.data.distributorId == distributorId()
         && resource.data.status == 'draft'
         && (
-          (role() == 'sr' && resource.data.srId == request.auth.uid)
+          ((role() == 'sr' || role() == 'dsr') && resource.data.srId == request.auth.uid)
           || role() == 'distributor'
         );
     }

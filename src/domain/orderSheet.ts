@@ -55,15 +55,25 @@ function numberOrZero(value: number): number {
   return Number.isFinite(value) ? value : 0;
 }
 
-function linesForOrder(order: Order, productId?: string): OrderLine[] {
-  if (!productId) return order.lines;
-  return order.lines.filter((line) => line.productId === productId);
+export type InvoiceSelection = {
+  shopIds?: ReadonlySet<string>;
+  productIds?: ReadonlySet<string>;
+};
+
+function selected(id: string, ids?: ReadonlySet<string>): boolean {
+  return !ids || ids.has(id);
 }
 
-function shopEntries(orders: Order[], productId?: string): ShopEntry[] {
+function linesForOrder(order: Order, productIds?: ReadonlySet<string>): OrderLine[] {
+  if (!productIds) return order.lines;
+  return order.lines.filter((line) => productIds.has(line.productId));
+}
+
+function shopEntries(orders: Order[], selection?: InvoiceSelection): ShopEntry[] {
   const entries: ShopEntry[] = [];
   for (const order of orders) {
-    const lines = linesForOrder(order, productId);
+    if (!selected(order.shopId, selection?.shopIds)) continue;
+    const lines = linesForOrder(order, selection?.productIds);
     if (lines.length === 0) continue;
     const chunks = Math.ceil(lines.length / INVOICE_PRODUCT_ROWS);
     for (let index = 0; index < chunks; index += 1) {
@@ -135,12 +145,15 @@ function writeEntry(rows: InvoiceCell[][], entry: ShopEntry, startRow: number) {
   }
 }
 
-export function invoiceLineCount(orders: Order[], productId?: string): number {
-  return orders.reduce((sum, order) => sum + linesForOrder(order, productId).length, 0);
+export function invoiceLineCount(orders: Order[], selection?: InvoiceSelection): number {
+  return orders.reduce((sum, order) => {
+    if (!selected(order.shopId, selection?.shopIds)) return sum;
+    return sum + linesForOrder(order, selection?.productIds).length;
+  }, 0);
 }
 
-export function buildInvoiceSheet(orders: Order[], productId?: string): InvoiceSheet | null {
-  const entries = shopEntries(orders, productId);
+export function buildInvoiceSheet(orders: Order[], selection?: InvoiceSelection): InvoiceSheet | null {
+  const entries = shopEntries(orders, selection);
   if (entries.length === 0) return null;
 
   const stride = BLOCK_ROWS + SHOP_GAP_ROWS;

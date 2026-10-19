@@ -35,16 +35,21 @@ function AuthGate({ children }: { children: ReactNode }) {
     if (inAuth) {
       if (profile.role === 'distributor') {
         router.replace('/(distributor)/(app)/dashboard');
+      } else if (profile.role === 'dsr') {
+        router.replace('/(dsr)/(app)/dashboard');
       } else {
         router.replace('/(sr)/(app)/dashboard');
       }
       return;
     }
 
-    if (profile.role === 'sr' && segments[0] === '(distributor)') {
+    if (profile.role === 'sr' && (segments[0] === '(distributor)' || segments[0] === '(dsr)')) {
       router.replace('/(sr)/(app)/dashboard');
     }
-    if (profile.role === 'distributor' && segments[0] === '(sr)') {
+    if (profile.role === 'dsr' && (segments[0] === '(distributor)' || segments[0] === '(sr)')) {
+      router.replace('/(dsr)/(app)/dashboard');
+    }
+    if (profile.role === 'distributor' && (segments[0] === '(sr)' || segments[0] === '(dsr)')) {
       router.replace('/(distributor)/(app)/dashboard');
     }
   }, [firebaseUser, profile, loading, segments, router]);
@@ -81,6 +86,7 @@ export default function RootLayout() {
             >
               <Stack.Screen name="(auth)" options={{ headerShown: false }} />
               <Stack.Screen name="(sr)" options={{ headerShown: false }} />
+              <Stack.Screen name="(dsr)" options={{ headerShown: false }} />
               <Stack.Screen name="(distributor)" options={{ headerShown: false }} />
               <Stack.Screen name="index" options={{ headerShown: false }} />
             </Stack>

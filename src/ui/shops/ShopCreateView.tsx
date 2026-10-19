@@ -9,7 +9,7 @@ import { AppButton, AppInput } from '@/src/ui/Form';
 import { colors, spacing } from '@/src/theme/tokens';
 
 type Props = {
-  listHref: '/(distributor)/(app)/shops' | '/(sr)/(app)/shops';
+  listHref: '/(distributor)/(app)/shops' | '/(sr)/(app)/shops' | '/(dsr)/(app)/shops';
 };
 
 export function ShopCreateView({ listHref }: Props) {

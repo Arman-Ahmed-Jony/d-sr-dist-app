@@ -336,6 +336,8 @@ export function totalsFromRows(rows: OrderTableRow[]): OrderTableTotals {
       freeProductId: '',
       freeProductName: row.freeProductName ?? '',
       lineTotal: row.money,
+      bouncedCases: 0,
+      bouncedPcs: 0,
     };
     return line;
   });

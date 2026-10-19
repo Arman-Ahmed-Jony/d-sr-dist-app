@@ -1,6 +1,13 @@
-export type UserRole = 'sr' | 'distributor';
+export type UserRole = 'sr' | 'distributor' | 'dsr';
 
-export type OrderStatus = 'draft' | 'submitted' | 'confirmed' | 'cancelled';
+export type OrderStatus =
+  | 'draft'
+  | 'submitted'
+  | 'confirmed'
+  | 'cancelled'
+  | 'delivered'
+  | 'bounced'
+  | 'partial';
 
 export type LineAdjustmentMode = 'discountAmount' | 'freePcs';
 
@@ -57,6 +64,8 @@ export interface OrderLine {
   freeProductId: string;
   freeProductName: string;
   lineTotal: number;
+  bouncedCases: number;
+  bouncedPcs: number;
 }
 
 export interface Order {
@@ -65,6 +74,8 @@ export interface Order {
   distributorName?: string;
   srId: string;
   srName?: string;
+  dsrId?: string;
+  dsrName?: string;
   shopId: string;
   shopName: string;
   memoNo?: string;

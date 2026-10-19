@@ -1,9 +1,12 @@
-import { type ComponentProps, useMemo, useState } from 'react';
+import { type ComponentProps, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { Chip, Menu, Text } from 'react-native-paper';
+import { Chip, Menu, Modal, Portal, Text } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
-import type { Order } from '@/src/domain/types';
+import { assignOrderDsr, setOrderStatus } from '@/src/data/repos/ordersRepo';
+import { listDsrsByDistributor } from '@/src/data/repos/usersRepo';
+import type { AppUser, Order, OrderStatus } from '@/src/domain/types';
+import { statusLabel } from '@/src/ui/StatusChip';
 import { invoiceLineCount } from '@/src/domain/orderSheet';
 import { shareInvoice } from '@/src/services/shareInvoice';
 import {
@@ -26,6 +29,7 @@ import {
   type OrderTableSortKey,
   type OrderTableView,
 } from '@/src/domain/orderTable';
+import { InvoiceExportSheet } from '@/src/ui/orders/InvoiceExportSheet';
 import { OrderDataTable } from '@/src/ui/orders/OrderDataTable';
 import { OrderTotalsBar } from '@/src/ui/orders/OrderTotalsBar';
 import { groupByLabel, OrderTableCriteriaSheet } from '@/src/ui/orders/OrderTableCriteriaSheet';
@@ -44,6 +48,8 @@ type ExtraChip = {
   label: string;
   onClear: () => void;
 };
+
+const BULK_STATUSES: OrderStatus[] = ['submitted', 'confirmed', 'cancelled', 'delivered', 'bounced'];
 
 const QUICK_FILTER_ICONS: Record<OrderQuickFilter, IconName> = {
   todayDelivery: 'truck-outline',
@@ -105,14 +111,46 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   const [sortKey, setSortKey] = useState<OrderTableSortKey>('orderDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [groupBy, setGroupBy] = useState<OrderTableGroupBy>('shop');
+  const [dsrs, setDsrs] = useState<AppUser[]>([]);
+  const [assignTarget, setAssignTarget] = useState<Order | null>(null);
+  const [bulkAssign, setBulkAssign] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, Pick<Order, 'status' | 'lines'>>>({});
+  const [assigning, setAssigning] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+  const [assigned, setAssigned] = useState<Record<string, { id: string; name: string }>>({});
   const [exporting, setExporting] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const shops = useMemo(() => uniqueShops(orders), [orders]);
-  const srs = useMemo(() => uniqueSrs(orders), [orders]);
-  const products = useMemo(() => uniqueProducts(orders), [orders]);
+  useEffect(() => {
+    if (!distributorId) return;
+    void listDsrsByDistributor(distributorId)
+      .then((rows) => {
+        rows.sort((a, b) => a.name.localeCompare(b.name));
+        setDsrs(rows.filter((row) => row.active));
+      })
+      .catch((error) => {
+        console.error('listDsrsByDistributor failed', error);
+      });
+  }, [distributorId]);
 
-  const filteredOrders = useMemo(() => filterOrders(orders, filters), [orders, filters]);
+  const displayOrders = useMemo(
+    () =>
+      orders.map((order) => {
+        const patch = statusOverrides[order.id];
+        if (!patch || order.status === patch.status) return order;
+        return { ...order, status: patch.status, lines: patch.lines };
+      }),
+    [orders, statusOverrides],
+  );
+
+  const shops = useMemo(() => uniqueShops(displayOrders), [displayOrders]);
+  const srs = useMemo(() => uniqueSrs(displayOrders), [displayOrders]);
+  const products = useMemo(() => uniqueProducts(displayOrders), [displayOrders]);
+
+  const filteredOrders = useMemo(() => filterOrders(displayOrders, filters), [displayOrders, filters]);
 
   const rows = useMemo(() => {
     const base =
@@ -173,14 +211,100 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   };
 
   const extraCount = extraFilterCount(filters, selectedQuickFilter);
-  const canExport = invoiceLineCount(filteredOrders, filters.productId) > 0;
+  const exportSelection = filters.productId ? { productIds: new Set([filters.productId]) } : undefined;
+  const canExport = invoiceLineCount(filteredOrders, exportSelection) > 0;
+  const exportShops = useMemo(() => uniqueShops(filteredOrders), [filteredOrders]);
+  const exportProducts = useMemo(() => {
+    const rows = uniqueProducts(filteredOrders);
+    if (!filters.productId) return rows;
+    return rows.filter((product) => product.id === filters.productId);
+  }, [filteredOrders, filters.productId]);
 
-  const onDownloadInvoice = async () => {
-    if (!canExport || exporting) return;
+  const visibleIds = useMemo(() => [...new Set(filteredOrders.map((order) => order.id))], [filteredOrders]);
+  const selectedVisible = visibleIds.filter((id) => selectedIds.has(id));
+  const selectAll =
+    selectedVisible.length === 0
+      ? 'unchecked'
+      : selectedVisible.length === visibleIds.length
+        ? 'checked'
+        : 'indeterminate';
+
+  const toggleOrder = (order: Order) => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      if (next.has(order.id)) next.delete(order.id);
+      else next.add(order.id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      const allOn = visibleIds.every((id) => next.has(id));
+      for (const id of visibleIds) {
+        if (allOn) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectedOrders = filteredOrders.filter((order) => selectedIds.has(order.id));
+  const assignOrders = assignTarget ? [assignTarget] : bulkAssign ? selectedOrders : [];
+
+  const onPickDsr = async (dsr: AppUser | null) => {
+    if (assignOrders.length === 0 || assigning) return;
+    setAssigning(true);
+    setBulkError(null);
+    const nextAssigned = { ...assigned };
+    let failed = 0;
+    for (const order of assignOrders) {
+      try {
+        await assignOrderDsr(order.id, dsr?.id ?? '', dsr?.name ?? '');
+        nextAssigned[order.id] = { id: dsr?.id ?? '', name: dsr?.name ?? '' };
+      } catch (error) {
+        failed += 1;
+        console.error('assignOrderDsr failed', error);
+      }
+    }
+    setAssigned(nextAssigned);
+    if (failed > 0) setBulkError(t('errorBulkUpdate'));
+    else if (bulkAssign) setSelectedIds(new Set());
+    setAssignTarget(null);
+    setBulkAssign(false);
+    setAssigning(false);
+  };
+
+  const onPickStatus = async (status: OrderStatus) => {
+    if (selectedOrders.length === 0 || assigning) return;
+    setAssigning(true);
+    setBulkError(null);
+    const nextOverrides = { ...statusOverrides };
+    let failed = 0;
+    for (const order of selectedOrders) {
+      try {
+        const updated = await setOrderStatus(order, status);
+        nextOverrides[order.id] = { status: updated.status, lines: updated.lines };
+      } catch (error) {
+        failed += 1;
+        console.error('setOrderStatus failed', error);
+      }
+    }
+    setStatusOverrides(nextOverrides);
+    if (failed > 0) setBulkError(t('errorBulkUpdate'));
+    else setSelectedIds(new Set());
+    setStatusOpen(false);
+    setAssigning(false);
+  };
+
+  const onDownloadInvoice = async (shopIds: Set<string>, productIds: Set<string>) => {
+    if (exporting) return;
     setExporting(true);
     setExportError(null);
     try {
-      await shareInvoice(filteredOrders, filters.productId);
+      await shareInvoice(filteredOrders, { shopIds, productIds });
+      setExportOpen(false);
     } catch (error) {
       console.error('shareInvoice failed', error);
       setExportError(t('errorExportInvoice'));
@@ -365,9 +489,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
       </View>
 
       <Pressable
-        onPress={() => {
-          void onDownloadInvoice();
-        }}
+        onPress={() => setExportOpen(true)}
         disabled={!canExport || exporting}
         style={[styles.download, (!canExport || exporting) && styles.downloadDisabled]}
         accessibilityRole="button"
@@ -390,6 +512,18 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
           {exportError}
         </Text>
       ) : null}
+      <InvoiceExportSheet
+        visible={exportOpen}
+        shops={exportShops}
+        products={exportProducts}
+        exporting={exporting}
+        onClose={() => {
+          if (!exporting) setExportOpen(false);
+        }}
+        onDownload={(shopIds, productIds) => {
+          void onDownloadInvoice(shopIds, productIds);
+        }}
+      />
 
       {selectedQuickFilter ? (
         <View style={styles.summary}>
@@ -436,11 +570,37 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
       />
 
       <OrderTotalsBar totals={totals} />
+      {selectedVisible.length > 0 ? (
+        <View style={styles.bulkBar}>
+          <Text variant="labelLarge">{t('selectedCount', { count: selectedVisible.length })}</Text>
+          <Pressable
+            onPress={() => setBulkAssign(true)}
+            disabled={assigning}
+            style={styles.bulkAction}
+            accessibilityRole="button"
+          >
+            <Text style={styles.bulkActionLabel}>{t('assignDsr')}</Text>
+          </Pressable>
+          <Pressable
+            onPress={() => setStatusOpen(true)}
+            disabled={assigning}
+            style={styles.bulkAction}
+            accessibilityRole="button"
+          >
+            <Text style={styles.bulkActionLabel}>{t('changeStatus')}</Text>
+          </Pressable>
+          <Pressable onPress={() => setSelectedIds(new Set())} accessibilityRole="button">
+            <Text style={styles.bulkClear}>{t('clearSelection')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {bulkError ? <Text style={styles.exportError}>{bulkError}</Text> : null}
       {rows.length === 0 ? (
         <Text variant="bodyMedium" style={styles.empty}>
           {t('emptyOrderTable')}
         </Text>
       ) : (
+        <>
         <OrderDataTable
           view={view}
           groups={groups}
@@ -456,7 +616,74 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
           }}
           distributorId={distributorId}
           onDraftDeleted={onDraftDeleted}
+          dsrLabel={(order) => {
+            const overlay = assigned[order.id];
+            if (overlay) return overlay.name || t('unassigned');
+            return order.dsrName || t('unassigned');
+          }}
+          onAssignDsr={setAssignTarget}
+          selectedIds={selectedIds}
+          selectAll={selectAll}
+          onToggleOrder={toggleOrder}
+          onToggleAll={toggleAll}
         />
+        <Portal>
+          <Modal
+            visible={assignOrders.length > 0}
+            onDismiss={() => {
+              if (!assigning) {
+                setAssignTarget(null);
+                setBulkAssign(false);
+              }
+            }}
+            contentContainerStyle={styles.assignSheet}
+          >
+            <Text variant="titleMedium">{t('assignDsr')}</Text>
+            <Text variant="bodySmall" style={styles.assignShop}>
+              {assignTarget ? assignTarget.shopName : t('selectedCount', { count: assignOrders.length })}
+            </Text>
+            <Pressable
+              onPress={() => void onPickDsr(null)}
+              disabled={assigning}
+              style={styles.assignRow}
+            >
+              <Text>{t('unassigned')}</Text>
+            </Pressable>
+            {dsrs.map((dsr) => (
+              <Pressable
+                key={dsr.id}
+                onPress={() => void onPickDsr(dsr)}
+                disabled={assigning}
+                style={styles.assignRow}
+              >
+                <Text>{dsr.name}</Text>
+              </Pressable>
+            ))}
+          </Modal>
+          <Modal
+            visible={statusOpen}
+            onDismiss={() => {
+              if (!assigning) setStatusOpen(false);
+            }}
+            contentContainerStyle={styles.assignSheet}
+          >
+            <Text variant="titleMedium">{t('changeStatus')}</Text>
+            <Text variant="bodySmall" style={styles.assignShop}>
+              {t('selectedCount', { count: selectedVisible.length })}
+            </Text>
+            {BULK_STATUSES.map((status) => (
+              <Pressable
+                key={status}
+                onPress={() => void onPickStatus(status)}
+                disabled={assigning}
+                style={styles.assignRow}
+              >
+                <Text>{statusLabel(status, t)}</Text>
+              </Pressable>
+            ))}
+          </Modal>
+        </Portal>
+        </>
       )}
     </View>
   );
@@ -575,6 +802,39 @@ const styles = StyleSheet.create({
     color: colors.danger,
     marginTop: -spacing.sm,
     marginBottom: spacing.md,
+  },
+  assignSheet: {
+    marginHorizontal: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    gap: spacing.sm,
+  },
+  assignShop: { color: colors.textMuted, marginBottom: spacing.sm },
+  assignRow: {
+    paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  bulkBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  bulkAction: {
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 999,
+    backgroundColor: colors.primary,
+  },
+  bulkActionLabel: {
+    color: colors.white,
+    fontWeight: '600',
+  },
+  bulkClear: {
+    color: colors.textMuted,
   },
   summary: {
     flexDirection: 'row',

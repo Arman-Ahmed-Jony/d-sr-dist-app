@@ -12,6 +12,7 @@ import {
 import { db } from '../firebase';
 import { getProduct } from './productsRepo';
 import { getShop, resolveShopForOrder } from './shopsRepo';
+import { deliveryStatus, linesForDelivery, type BounceInput, type DeliveryResult } from '@/src/domain/delivery';
 import { computeLineTotal, computeOrderTotal } from '@/src/domain/orderCalc';
 import type { LineAdjustmentMode, Order, OrderLine, OrderStatus } from '@/src/domain/types';
 import { toDate } from '../converters';
@@ -26,11 +27,15 @@ import {
   saveCachedSrOrders,
 } from '../offline/catalogStore';
 import {
+  enqueueAssignDsr,
   enqueueCreateOrder,
   enqueueDeleteOrder,
+  enqueueRecordDelivery,
   enqueueUpdateOrder,
   getPendingOrder,
   isLocalId,
+  listAssignOverlays,
+  listDeliveryOverlays,
   listPendingOrders,
   updatePendingPreview,
   type OutboxShopFields,
@@ -148,6 +153,8 @@ async function snapshotOrderLines(
       freePcs: adjustmentMode === 'freePcs' ? adjustmentValue : 0,
       freeProductId,
       freeProductName,
+      bouncedCases: 0,
+      bouncedPcs: 0,
       lineTotal: computeLineTotal({
         pricePerCase,
         quantityCases: line.quantityCases,
@@ -456,19 +463,147 @@ export async function listOrdersBySr(srId: string, distributorId: string): Promi
   }
 }
 
+function applyAssignOverlays(orders: Order[], overlays: { orderId: string; dsrId: string; dsrName: string }[]): Order[] {
+  if (overlays.length === 0) return orders;
+  const byId = new Map(overlays.map((row) => [row.orderId, row]));
+  return orders.map((order) => {
+    const overlay = byId.get(order.id);
+    if (!overlay) return order;
+    return { ...order, dsrId: overlay.dsrId || undefined, dsrName: overlay.dsrName || undefined };
+  });
+}
+
+function applyDeliveryOverlays(orders: Order[], overlays: Order[]): Order[] {
+  if (overlays.length === 0) return orders;
+  const byId = new Map(overlays.map((order) => [order.id, order]));
+  return orders.map((order) => byId.get(order.id) ?? order);
+}
+
 export async function listOrdersByDistributor(distributorId: string): Promise<Order[]> {
   const pending = (await listPendingOrders()).filter((order) => order.distributorId === distributorId);
+  const assigns = await listAssignOverlays();
+  const deliveries = await listDeliveryOverlays();
   try {
     const q = query(collection(db, 'orders'), where('distributorId', '==', distributorId));
     const snap = await getDocsWithFallback(q);
-    const rows = snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>));
+    const rows = applyAssignOverlays(
+      applyDeliveryOverlays(
+        snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>)),
+        deliveries,
+      ),
+      assigns,
+    );
     rows.sort((a, b) => b.orderDate.getTime() - a.orderDate.getTime());
     await saveCachedDistributorOrders(distributorId, rows);
     return mergePending(rows, pending);
   } catch (error) {
     if (!isOfflineError(error)) throw error;
     const cached = (await loadCachedDistributorOrders(distributorId)) ?? [];
-    return mergePending(cached, pending);
+    return mergePending(applyAssignOverlays(applyDeliveryOverlays(cached, deliveries), assigns), pending);
+  }
+}
+
+export async function listOrdersByDsr(dsrId: string, distributorId: string): Promise<Order[]> {
+  const deliveries = (await listDeliveryOverlays()).filter(
+    (order) => order.dsrId === dsrId && order.distributorId === distributorId,
+  );
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      where('distributorId', '==', distributorId),
+      where('dsrId', '==', dsrId),
+    );
+    const snap = await getDocsWithFallback(q);
+    const rows = applyDeliveryOverlays(
+      snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>)),
+      deliveries,
+    );
+    rows.sort((a, b) => a.deliveryDate.getTime() - b.deliveryDate.getTime());
+    return rows;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    return deliveries;
+  }
+}
+
+export async function listSalesByDsr(dsrId: string, distributorId: string): Promise<Order[]> {
+  const pending = await listPendingOrders(dsrId);
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      where('distributorId', '==', distributorId),
+      where('srId', '==', dsrId),
+    );
+    const snap = await getDocsWithFallback(q);
+    const rows = snap.docs.map((d) => mapOrder(d.id, d.data() as Record<string, unknown>));
+    rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return mergePending(rows, pending);
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    return pending;
+  }
+}
+
+export async function assignOrderDsr(orderId: string, dsrId: string, dsrName: string): Promise<void> {
+  try {
+    await updateDoc(doc(db, 'orders', orderId), {
+      dsrId,
+      dsrName,
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    await enqueueAssignDsr(orderId, dsrId, dsrName);
+  }
+}
+
+export async function setOrderStatus(order: Order, status: OrderStatus): Promise<Order> {
+  if (isLocalId(order.id)) {
+    throw new Error('This order is still waiting to sync.');
+  }
+  const lines =
+    status === 'delivered' || status === 'cancelled' || status === 'bounced' || status === 'partial'
+      ? linesForDelivery(order, status)
+      : order.lines.map((line) => ({ ...line, bouncedCases: 0, bouncedPcs: 0 }));
+  const next: Order = { ...order, lines, status, updatedAt: new Date(), pendingSync: false };
+  try {
+    await updateDoc(doc(db, 'orders', order.id), {
+      lines,
+      status,
+      updatedAt: serverTimestamp(),
+    });
+    return next;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const pending = { ...next, pendingSync: true };
+    await enqueueRecordDelivery(pending);
+    return pending;
+  }
+}
+
+export async function recordDelivery(
+  order: Order,
+  result: DeliveryResult,
+  partial: BounceInput[] = [],
+): Promise<Order> {
+  const lines = linesForDelivery(order, result, partial);
+  const status = deliveryStatus(result);
+  const next: Order = { ...order, lines, status, updatedAt: new Date(), pendingSync: false };
+  if (isLocalId(order.id)) {
+    throw new Error('This order is still waiting to sync.');
+  }
+  try {
+    await updateDoc(doc(db, 'orders', order.id), {
+      lines,
+      status,
+      updatedAt: serverTimestamp(),
+    });
+    return next;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const pending = { ...next, pendingSync: true };
+    await enqueueRecordDelivery(pending);
+    return pending;
   }
 }
 
@@ -503,6 +638,8 @@ export function mapOrder(id: string, data: Record<string, unknown>): Order {
         storedFreeProductId || (adjustmentMode === 'freePcs' ? productId : ''),
       freeProductName:
         storedFreeProductName || (adjustmentMode === 'freePcs' ? productName : ''),
+      bouncedCases: Number(line.bouncedCases ?? 0),
+      bouncedPcs: Number(line.bouncedPcs ?? 0),
       lineTotal:
         storedTotal === undefined
           ? computeLineTotal({
@@ -524,6 +661,8 @@ export function mapOrder(id: string, data: Record<string, unknown>): Order {
     distributorName: data.distributorName ? String(data.distributorName) : undefined,
     srId: String(data.srId ?? ''),
     srName: data.srName ? String(data.srName) : undefined,
+    dsrId: data.dsrId ? String(data.dsrId) : undefined,
+    dsrName: data.dsrName ? String(data.dsrName) : undefined,
     shopId: String(data.shopId ?? ''),
     shopName: String(data.shopName ?? ''),
     memoNo: data.memoNo ? String(data.memoNo) : undefined,

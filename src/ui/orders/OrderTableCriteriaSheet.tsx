@@ -3,12 +3,21 @@ import { Chip, Modal, Portal, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { OrderStatus } from '@/src/domain/types';
 import type { OrderTableFilters, OrderTableGroupBy, OrderTableSortKey } from '@/src/domain/orderTable';
+import { statusLabel } from '@/src/ui/StatusChip';
 import { AppButton } from '@/src/ui/Form';
 import { SearchSelect } from '@/src/ui/SearchSelect';
 import { DateField } from '@/src/ui/DateField';
 import { colors, spacing } from '@/src/theme/tokens';
 
-const STATUSES: OrderStatus[] = ['draft', 'submitted', 'confirmed', 'cancelled'];
+const STATUSES: OrderStatus[] = [
+  'draft',
+  'submitted',
+  'confirmed',
+  'delivered',
+  'partial',
+  'bounced',
+  'cancelled',
+];
 
 type NamedOption = { id: string; label: string };
 
@@ -177,7 +186,7 @@ export function OrderTableCriteriaSheet({
               {STATUSES.map((status) => (
                 <ChoiceChip
                   key={status}
-                  label={status}
+                  label={statusLabel(status, t)}
                   active={filters.status === status}
                   onPress={() => onFiltersChange({ status })}
                 />

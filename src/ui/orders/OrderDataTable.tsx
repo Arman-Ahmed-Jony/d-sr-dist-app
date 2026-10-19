@@ -1,8 +1,9 @@
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { Text } from 'react-native-paper';
+import { Checkbox, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { StatusChip } from '@/src/ui/StatusChip';
 import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
+import type { Order } from '@/src/domain/types';
 import type {
   OrderTableGroup,
   OrderTableRow,
@@ -27,6 +28,12 @@ type Props = {
   onSort: (key: OrderTableSortKey) => void;
   distributorId?: string;
   onDraftDeleted?: () => void;
+  dsrLabel?: (order: Order) => string;
+  onAssignDsr?: (order: Order) => void;
+  selectedIds?: ReadonlySet<string>;
+  selectAll?: 'checked' | 'unchecked' | 'indeterminate';
+  onToggleOrder?: (order: Order) => void;
+  onToggleAll?: () => void;
 };
 
 function formatAmount(value: number): string {
@@ -52,6 +59,12 @@ export function OrderDataTable({
   onSort,
   distributorId,
   onDraftDeleted,
+  dsrLabel,
+  onAssignDsr,
+  selectedIds,
+  selectAll = 'unchecked',
+  onToggleOrder,
+  onToggleAll,
 }: Props) {
   const { t } = useTranslation();
 
@@ -96,6 +109,16 @@ export function OrderDataTable({
             width: 100,
             value: (row) => formatAmount(row.money),
           },
+          ...(onAssignDsr
+            ? [
+                {
+                  key: 'dsr',
+                  label: t('dsrName'),
+                  width: 120,
+                  value: (row: OrderTableRow) => dsrLabel?.(row.order) ?? '',
+                },
+              ]
+            : []),
           { key: 'actions', label: '', width: 56, value: () => '' },
         ]
       : [
@@ -146,9 +169,20 @@ export function OrderDataTable({
             value: (row) => row.orderDate.toLocaleDateString(),
           },
           { key: 'status', sortKey: 'status', label: t('status'), width: 150, value: (row) => row.status },
+          ...(onAssignDsr
+            ? [
+                {
+                  key: 'dsr',
+                  label: t('dsrName'),
+                  width: 120,
+                  value: (row: OrderTableRow) => dsrLabel?.(row.order) ?? '',
+                },
+              ]
+            : []),
         ];
 
-  const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
+  const checkWidth = onToggleOrder ? 44 : 0;
+  const tableWidth = columns.reduce((sum, column) => sum + column.width, 0) + checkWidth;
 
   return (
     <ScrollView
@@ -159,6 +193,11 @@ export function OrderDataTable({
     >
       <View style={[styles.table, { width: tableWidth }]}>
         <View style={styles.headerRow}>
+          {onToggleOrder && onToggleAll ? (
+            <View style={[styles.cell, cellStyle(checkWidth)]}>
+              <Checkbox status={selectAll} onPress={onToggleAll} color={colors.primary} />
+            </View>
+          ) : null}
           {columns.map((column) => {
             const active = column.sortKey != null && column.sortKey === sortKey;
             const arrow = active ? (sortDirection === 'asc' ? ' ↑' : ' ↓') : '';
@@ -202,10 +241,25 @@ export function OrderDataTable({
             ) : null}
             {group.rows.map((row) => (
               <View key={row.id} style={styles.bodyRow}>
+                {onToggleOrder ? (
+                  <View style={[styles.cell, cellStyle(checkWidth)]}>
+                    <Checkbox
+                      status={selectedIds?.has(row.order.id) ? 'checked' : 'unchecked'}
+                      onPress={() => onToggleOrder(row.order)}
+                      color={colors.primary}
+                    />
+                  </View>
+                ) : null}
                 {columns.map((column) => (
                   <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
                     {column.key === 'status' ? (
                       <StatusChip status={row.status} pending={row.order.pendingSync} />
+                    ) : column.key === 'dsr' && onAssignDsr ? (
+                      <Pressable onPress={() => onAssignDsr(row.order)} accessibilityRole="button">
+                        <Text variant="bodySmall" numberOfLines={2} style={styles.assign}>
+                          {column.value(row) || t('assignDsr')}
+                        </Text>
+                      </Pressable>
                     ) : column.key === 'actions' ? (
                       view === 'order' &&
                       (row.status === 'draft' || row.order.pendingSync) &&
@@ -278,6 +332,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
+  assign: { color: colors.primary },
   groupLabel: { color: colors.primary },
   groupMeta: { color: colors.textMuted, marginTop: 2 },
 });

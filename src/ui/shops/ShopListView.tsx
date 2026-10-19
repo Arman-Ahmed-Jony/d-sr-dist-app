@@ -11,7 +11,7 @@ import { colors, radii, spacing } from '@/src/theme/tokens';
 
 type Props = {
   /** e.g. `/(distributor)/(app)/shops` or `/(sr)/(app)/shops` */
-  baseHref: '/(distributor)/(app)/shops' | '/(sr)/(app)/shops';
+  baseHref: '/(distributor)/(app)/shops' | '/(sr)/(app)/shops' | '/(dsr)/(app)/shops';
 };
 
 export function ShopListView({ baseHref }: Props) {
@@ -112,10 +112,12 @@ export function ShopListView({ baseHref }: Props) {
             href={
               baseHref === '/(sr)/(app)/shops'
                 ? { pathname: '/(sr)/(app)/shops/[id]', params: { id: item.id } }
-                : {
-                    pathname: '/(distributor)/(app)/shops/[id]',
-                    params: { id: item.id },
-                  }
+                : baseHref === '/(dsr)/(app)/shops'
+                  ? { pathname: '/(dsr)/(app)/shops/[id]', params: { id: item.id } }
+                  : {
+                      pathname: '/(distributor)/(app)/shops/[id]',
+                      params: { id: item.id },
+                    }
             }
             asChild
           >

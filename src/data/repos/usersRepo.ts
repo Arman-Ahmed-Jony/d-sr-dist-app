@@ -39,14 +39,25 @@ export async function getUserProfile(uid: string): Promise<AppUser | null> {
   }
 }
 
-export async function listSrsByDistributor(distributorId: string): Promise<AppUser[]> {
+export async function listUsersByRole(
+  distributorId: string,
+  role: Extract<UserRole, 'sr' | 'dsr'>,
+): Promise<AppUser[]> {
   const q = query(
     collection(db, 'users'),
     where('distributorId', '==', distributorId),
-    where('role', '==', 'sr'),
+    where('role', '==', role),
   );
   const snap = await getDocsWithFallback(q);
   return snap.docs.map((d) => mapUser(d.id, d.data() as Record<string, unknown>));
+}
+
+export async function listSrsByDistributor(distributorId: string): Promise<AppUser[]> {
+  return listUsersByRole(distributorId, 'sr');
+}
+
+export async function listDsrsByDistributor(distributorId: string): Promise<AppUser[]> {
+  return listUsersByRole(distributorId, 'dsr');
 }
 
 export async function setUserActive(uid: string, active: boolean): Promise<void> {

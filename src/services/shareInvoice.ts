@@ -1,6 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { Platform } from 'react-native';
+import type { InvoiceSelection } from '@/src/domain/orderSheet';
 import type { Order } from '@/src/domain/types';
 import { INVOICE_MIME, buildInvoiceFile, invoiceFileName } from '@/src/services/invoiceWorkbook';
 
@@ -16,8 +17,8 @@ function downloadOnWeb(bytes: Uint8Array, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export async function shareInvoice(orders: Order[], productId?: string): Promise<void> {
-  const bytes = buildInvoiceFile(orders, productId);
+export async function shareInvoice(orders: Order[], selection?: InvoiceSelection): Promise<void> {
+  const bytes = buildInvoiceFile(orders, selection);
   if (!bytes) throw new Error('No invoice rows');
 
   const filename = invoiceFileName();

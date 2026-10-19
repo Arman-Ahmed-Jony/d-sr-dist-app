@@ -3,6 +3,7 @@ import {
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   createUserWithEmailAndPassword,
+  deleteUser,
   getAuth,
   type User,
 } from 'firebase/auth';
@@ -49,13 +50,19 @@ export async function registerUser(input: {
     input.email.trim(),
     input.password,
   );
-  await createUserProfile({
-    uid: cred.user.uid,
-    name: input.name,
-    email: input.email.trim(),
-    role: input.role,
-    distributorId: input.distributorId,
-  });
-  await firebaseSignOut(secondaryAuth);
+  try {
+    await createUserProfile({
+      uid: cred.user.uid,
+      name: input.name,
+      email: input.email.trim(),
+      role: input.role,
+      distributorId: input.distributorId,
+    });
+  } catch (error) {
+    await deleteUser(cred.user).catch(() => undefined);
+    throw error;
+  } finally {
+    if (secondaryAuth.currentUser) await firebaseSignOut(secondaryAuth);
+  }
   return cred.user.uid;
 }

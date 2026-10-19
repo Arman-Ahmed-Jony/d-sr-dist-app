@@ -30,5 +30,9 @@ export default function Index() {
     return <Redirect href="/(distributor)/(app)/dashboard" />;
   }
 
+  if (profile.role === 'dsr') {
+    return <Redirect href="/(dsr)/(app)/dashboard" />;
+  }
+
   return <Redirect href="/(sr)/(app)/dashboard" />;
 }

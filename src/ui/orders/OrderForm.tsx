@@ -218,7 +218,7 @@ export function OrderForm({ order }: Props) {
           status: 'submitted',
         });
       }
-      router.replace('/(sr)/(app)/orders');
+      router.replace(profile.role === 'dsr' ? '/(dsr)/(app)/orders' : '/(sr)/(app)/orders');
     } catch {
       setError(editing ? t('errorUpdateOrder') : t('errorCreateOrder'));
     } finally {
@@ -447,7 +447,9 @@ export function OrderForm({ order }: Props) {
           <DeleteDraftOrderButton
             orderId={order.id}
             distributorId={profile.distributorId}
-            onDeleted={() => router.replace('/(sr)/(app)/orders')}
+            onDeleted={() =>
+              router.replace(profile?.role === 'dsr' ? '/(dsr)/(app)/orders' : '/(sr)/(app)/orders')
+            }
             onError={setError}
           />
         ) : null}

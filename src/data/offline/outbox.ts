@@ -83,11 +83,28 @@ export type OutboxDeleteOrder = {
   createdAt: string;
 };
 
+export type OutboxAssignDsr = {
+  kind: 'assignDsr';
+  orderId: string;
+  dsrId: string;
+  dsrName: string;
+  createdAt: string;
+};
+
+export type OutboxRecordDelivery = {
+  kind: 'recordDelivery';
+  orderId: string;
+  createdAt: string;
+  preview: ReturnType<typeof serializeOrder>;
+};
+
 export type OutboxItem =
   | OutboxCreateShop
   | OutboxCreateOrder
   | OutboxUpdateOrder
-  | OutboxDeleteOrder;
+  | OutboxDeleteOrder
+  | OutboxAssignDsr
+  | OutboxRecordDelivery;
 
 function newLocalId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -233,6 +250,45 @@ export async function listPendingShops(distributorId: string): Promise<Shop[]> {
       createdAt: new Date(row.createdAt),
       updatedAt: new Date(row.createdAt),
     }));
+}
+
+export async function enqueueAssignDsr(orderId: string, dsrId: string, dsrName: string): Promise<void> {
+  const items = await readOutbox();
+  const next = items.filter((row) => !(row.kind === 'assignDsr' && row.orderId === orderId));
+  next.push({
+    kind: 'assignDsr',
+    orderId,
+    dsrId,
+    dsrName,
+    createdAt: new Date().toISOString(),
+  });
+  await writeOutbox(next);
+}
+
+export async function enqueueRecordDelivery(preview: Order): Promise<void> {
+  const items = await readOutbox();
+  const next = items.filter((row) => !(row.kind === 'recordDelivery' && row.orderId === preview.id));
+  next.push({
+    kind: 'recordDelivery',
+    orderId: preview.id,
+    createdAt: new Date().toISOString(),
+    preview: serializeOrder({ ...preview, pendingSync: true }),
+  });
+  await writeOutbox(next);
+}
+
+export async function listAssignOverlays(): Promise<{ orderId: string; dsrId: string; dsrName: string }[]> {
+  const items = await readOutbox();
+  return items
+    .filter((row): row is OutboxAssignDsr => row.kind === 'assignDsr')
+    .map((row) => ({ orderId: row.orderId, dsrId: row.dsrId, dsrName: row.dsrName }));
+}
+
+export async function listDeliveryOverlays(): Promise<Order[]> {
+  const items = await readOutbox();
+  return items
+    .filter((row): row is OutboxRecordDelivery => row.kind === 'recordDelivery')
+    .map((row) => deserializeOrder(row.preview));
 }
 
 export async function listPendingOrders(srId?: string): Promise<Order[]> {

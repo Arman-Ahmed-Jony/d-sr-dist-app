@@ -21,6 +21,7 @@ export function DistributorDrawerContent(props: DrawerContentComponentProps) {
     href:
       | '/(distributor)/(app)/dashboard'
       | '/(distributor)/(app)/srs'
+      | '/(distributor)/(app)/dsrs'
       | '/(distributor)/(app)/products'
       | '/(distributor)/(app)/shops'
       | '/(distributor)/(app)/orders',
@@ -81,6 +82,11 @@ export function DistributorDrawerContent(props: DrawerContentComponentProps) {
           label={t('manageSrs')}
           icon="account-group-outline"
           onPress={() => go('/(distributor)/(app)/srs')}
+        />
+        <Drawer.Item
+          label={t('manageDsrs')}
+          icon="truck-outline"
+          onPress={() => go('/(distributor)/(app)/dsrs')}
         />
       </Drawer.Section>
 

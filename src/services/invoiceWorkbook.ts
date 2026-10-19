@@ -1,6 +1,6 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate';
 import * as XLSX from 'xlsx-js-style';
-import { buildInvoiceSheet, type InvoiceCell } from '@/src/domain/orderSheet';
+import { buildInvoiceSheet, type InvoiceCell, type InvoiceSelection } from '@/src/domain/orderSheet';
 import type { Order } from '@/src/domain/types';
 
 const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -69,8 +69,8 @@ function withA4Setup(bytes: Uint8Array, rowPageBreaks: number[]): Uint8Array {
   return zipSync(files);
 }
 
-export function buildInvoiceFile(orders: Order[], productId?: string): Uint8Array | null {
-  const sheet = buildInvoiceSheet(orders, productId);
+export function buildInvoiceFile(orders: Order[], selection?: InvoiceSelection): Uint8Array | null {
+  const sheet = buildInvoiceSheet(orders, selection);
   if (!sheet) return null;
 
   const columnCount = sheet.rows[0]?.length ?? 0;
