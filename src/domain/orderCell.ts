@@ -4,6 +4,7 @@ import type { Order, OrderLine, OrderStatus } from '@/src/domain/types';
 export type OrderCellField =
   | 'product'
   | 'cases'
+  | 'bounced'
   | 'freePcs'
   | 'discount'
   | 'orderDate'
@@ -12,6 +13,7 @@ export type OrderCellField =
 
 export type OrderCellPatch =
   | { field: 'cases'; productId?: string; quantityCases: number }
+  | { field: 'bounced'; productId?: string; bouncedCases: number; bouncedPcs: number }
   | {
       field: 'freePcs';
       productId?: string;
@@ -38,6 +40,17 @@ function startOfDay(date: Date): Date {
 function lineIndex(order: Order, productId?: string): number {
   if (productId) return order.lines.findIndex((line) => line.productId === productId);
   return order.lines.length === 1 ? 0 : -1;
+}
+
+function statusAfterBounce(order: Order, lines: OrderLine[]): OrderStatus {
+  const any = lines.some((line) => line.bouncedCases > 0 || line.bouncedPcs > 0);
+  const allFull =
+    lines.length > 0 &&
+    lines.every((line) => line.bouncedCases === line.quantityCases && line.bouncedPcs === line.quantityPcs);
+  if (allFull && any) return 'bounced';
+  if (any) return 'partial';
+  if (order.status === 'partial' || order.status === 'bounced') return 'confirmed';
+  return order.status;
 }
 
 function withLine(order: Order, index: number, line: OrderLine): Order {
@@ -92,6 +105,16 @@ export function applyOrderCellPatch(order: Order, patch: OrderCellPatch): Order 
         adjustmentValue: line.adjustmentMode === 'freePcs' ? line.freePcs : line.discountAmount,
       }),
     });
+  }
+
+  if (patch.field === 'bounced') {
+    const bouncedCases = Number.isFinite(patch.bouncedCases) ? patch.bouncedCases : 0;
+    const bouncedPcs = Number.isFinite(patch.bouncedPcs) ? patch.bouncedPcs : 0;
+    if (bouncedCases < 0 || bouncedPcs < 0 || bouncedCases > line.quantityCases || bouncedPcs > line.quantityPcs) {
+      throw new Error('Bounce quantity cannot exceed the order.');
+    }
+    const next = withLine(order, index, { ...line, bouncedCases, bouncedPcs });
+    return { ...next, status: statusAfterBounce(order, next.lines) };
   }
 
   if (patch.field === 'cases') {

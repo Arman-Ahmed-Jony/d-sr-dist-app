@@ -42,7 +42,7 @@ function canEditCell(columnKey: string, row: OrderTableRow, view: OrderTableView
   if (columnKey === 'status' || columnKey === 'orderDate') return true;
   if (columnKey === 'deliveryDate') return view === 'order';
   if (columnKey === 'discount') return view === 'line' && Boolean(row.productId);
-  if (columnKey === 'product') return view === 'line' && Boolean(row.productId);
+  if (columnKey === 'product' || columnKey === 'bounced') return view === 'line' && Boolean(row.productId);
   if (columnKey === 'cases' || columnKey === 'freePcs') {
     return view === 'line' ? Boolean(row.productId) : row.order.lines.length === 1;
   }
@@ -151,6 +151,15 @@ export function OrderDataTable({
             label: t('quantityCases'),
             width: 88,
             value: (row) => formatAmount(row.cases),
+          },
+          {
+            key: 'bounced',
+            label: t('bouncedCases'),
+            width: 110,
+            value: (row) => {
+              const cases = formatAmount(row.bouncedCases);
+              return row.bouncedPcs > 0 ? `${cases} · ${formatAmount(row.bouncedPcs)}` : cases;
+            },
           },
           {
             key: 'freePcs',

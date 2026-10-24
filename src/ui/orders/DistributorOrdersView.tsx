@@ -86,7 +86,8 @@ function sameOrderContent(left: Order, right: Order): boolean {
       line.adjustmentMode === other.adjustmentMode &&
       line.lineTotal === other.lineTotal &&
       line.freeProductId === other.freeProductId &&
-      line.bouncedCases === other.bouncedCases
+      line.bouncedCases === other.bouncedCases &&
+      line.bouncedPcs === other.bouncedPcs
     );
   });
 }

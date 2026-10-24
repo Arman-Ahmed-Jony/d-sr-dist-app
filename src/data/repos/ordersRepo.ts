@@ -598,7 +598,10 @@ export async function patchOrderCell(order: Order, patch: OrderCellPatch): Promi
   const update: Record<string, unknown> = { updatedAt: serverTimestamp() };
   if (patch.field === 'orderDate') update.orderDate = Timestamp.fromDate(next.orderDate);
   else if (patch.field === 'deliveryDate') update.deliveryDate = Timestamp.fromDate(next.deliveryDate);
-  else {
+  else if (patch.field === 'bounced') {
+    update.lines = next.lines;
+    update.status = next.status;
+  } else {
     update.lines = next.lines;
     update.orderTotal = next.orderTotal;
   }

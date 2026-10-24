@@ -41,6 +41,8 @@ export type OrderTableRow = {
   productName?: string;
   cases: number;
   quantityPcs: number;
+  bouncedCases: number;
+  bouncedPcs: number;
   freePcs: number;
   freeProductName?: string;
   discountAmount: number;
@@ -207,6 +209,8 @@ export function toOrderRows(orders: Order[]): OrderTableRow[] {
       deliveryDate: order.deliveryDate,
       cases: rollup.cases,
       quantityPcs: 0,
+      bouncedCases: 0,
+      bouncedPcs: 0,
       freePcs: rollup.freePcs,
       discountAmount: 0,
       money: rollup.money,
@@ -233,6 +237,8 @@ export function toLineRows(orders: Order[], productId?: string): OrderTableRow[]
         productName: line.productName,
         cases: Number.isFinite(line.quantityCases) ? line.quantityCases : 0,
         quantityPcs: Number.isFinite(line.quantityPcs) ? line.quantityPcs : 0,
+        bouncedCases: Number.isFinite(line.bouncedCases) ? line.bouncedCases : 0,
+        bouncedPcs: Number.isFinite(line.bouncedPcs) ? line.bouncedPcs : 0,
         freePcs: Number.isFinite(line.freePcs) ? line.freePcs : 0,
         freeProductName: line.freeProductName || undefined,
         discountAmount: Number.isFinite(line.discountAmount) ? line.discountAmount : 0,

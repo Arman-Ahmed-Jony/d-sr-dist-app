@@ -41,6 +41,8 @@ function fieldLabel(
   switch (field) {
     case 'cases':
       return t('quantityCases');
+    case 'bounced':
+      return t('bouncedCases');
     case 'product':
       return t('products');
     case 'freePcs':
@@ -59,6 +61,7 @@ function fieldLabel(
 export function OrderCellDialog({ target, distributorId, saving, error, onDismiss, onSave }: Props) {
   const { t } = useTranslation();
   const [text, setText] = useState('');
+  const [bouncePcsText, setBouncePcsText] = useState('');
   const [date, setDate] = useState(() => new Date());
   const [status, setStatus] = useState<OrderStatus>('submitted');
   const [productId, setProductId] = useState('');
@@ -74,6 +77,10 @@ export function OrderCellDialog({ target, distributorId, saving, error, onDismis
     const line = lineFor(target);
     setLocalError(null);
     if (target.field === 'cases') setText(line ? String(line.quantityCases) : '');
+    if (target.field === 'bounced') {
+      setText(line ? String(line.bouncedCases) : '0');
+      setBouncePcsText(line ? String(line.bouncedPcs) : '0');
+    }
     if (target.field === 'freePcs') {
       setText(line ? String(line.freePcs) : '');
       setFreeProductId(line?.freeProductId || line?.productId || '');
@@ -128,6 +135,23 @@ export function OrderCellDialog({ target, distributorId, saving, error, onDismis
       onSave({ field: 'discount', productId: target.productId, discountAmount: value });
       return;
     }
+    if (target.field === 'bounced' && line) {
+      const bouncedCases = Number(text);
+      const bouncedPcs = line.quantityPcs > 0 ? Number(bouncePcsText) : 0;
+      if (
+        !Number.isFinite(bouncedCases) ||
+        !Number.isFinite(bouncedPcs) ||
+        bouncedCases < 0 ||
+        bouncedPcs < 0 ||
+        bouncedCases > line.quantityCases ||
+        bouncedPcs > line.quantityPcs
+      ) {
+        setLocalError(t('errorUpdateOrder'));
+        return;
+      }
+      onSave({ field: 'bounced', productId: target.productId, bouncedCases, bouncedPcs });
+      return;
+    }
     if (target.field === 'product') {
       if (!productId || productId === line?.productId) {
         onDismiss();
@@ -169,13 +193,26 @@ export function OrderCellDialog({ target, distributorId, saving, error, onDismis
               <Text variant="bodySmall" style={styles.meta}>
                 {line?.productName ? `${target.order.shopName} · ${line.productName}` : target.order.shopName}
               </Text>
-              {target.field === 'cases' || target.field === 'freePcs' || target.field === 'discount' ? (
+              {target.field === 'cases' || target.field === 'freePcs' || target.field === 'discount' || target.field === 'bounced' ? (
                 <AppInput
-                  label={title}
+                  label={target.field === 'bounced' ? t('bouncedCases') : title}
                   value={text}
                   onChangeText={setText}
                   keyboardType="decimal-pad"
                 />
+              ) : null}
+              {target.field === 'bounced' && line && line.quantityPcs > 0 ? (
+                <AppInput
+                  label={t('bouncedPcs')}
+                  value={bouncePcsText}
+                  onChangeText={setBouncePcsText}
+                  keyboardType="decimal-pad"
+                />
+              ) : null}
+              {target.field === 'bounced' && line ? (
+                <Text variant="bodySmall" style={styles.meta}>
+                  {`${t('quantityCases')}: ${line.quantityCases}${line.quantityPcs > 0 ? ` · ${t('quantityPcs')}: ${line.quantityPcs}` : ''}`}
+                </Text>
               ) : null}
               {target.field === 'product' ? (
                 <SearchSelect

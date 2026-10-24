@@ -272,7 +272,7 @@ service cloud.firestore {
         && resource.data.distributorId == distributorId()
         && request.resource.data.distributorId == resource.data.distributorId
         && request.resource.data.srId == resource.data.srId
-        && request.resource.data.status in ['submitted', 'confirmed', 'cancelled', 'delivered', 'bounced']
+        && request.resource.data.status in ['submitted', 'confirmed', 'cancelled', 'delivered', 'bounced', 'partial']
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lines', 'updatedAt'])
         && orderLinesValid();
 
