@@ -276,6 +276,21 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lines', 'updatedAt'])
         && orderLinesValid();
 
+      allow update: if isActiveUser()
+        && role() == 'distributor'
+        && resource.data.distributorId == distributorId()
+        && request.resource.data.distributorId == resource.data.distributorId
+        && request.resource.data.srId == resource.data.srId
+        && request.resource.data.shopId == resource.data.shopId
+        && request.resource.data.shopName == resource.data.shopName
+        && request.resource.data.orderDate is timestamp
+        && request.resource.data.deliveryDate is timestamp
+        && request.resource.data.orderTotal is number
+        && request.resource.data.orderTotal >= 0
+        && orderLinesValid()
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['orderDate', 'deliveryDate', 'lines', 'orderTotal', 'updatedAt']);
+
       allow delete: if isActiveUser()
         && resource.data.distributorId == distributorId()
         && resource.data.status == 'draft'

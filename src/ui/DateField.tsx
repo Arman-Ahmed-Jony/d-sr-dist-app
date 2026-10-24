@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
 import { DatePickerModal } from 'react-native-paper-dates';
@@ -21,6 +21,7 @@ function appLocale(language?: string): 'en' | 'bn' {
 
 export function DateField({ label, value, onChange }: Props) {
   const { i18n } = useTranslation();
+  const inputId = useId();
   const [open, setOpen] = useState(false);
   const locale = appLocale(i18n.language);
   const display = value.toLocaleDateString(locale === 'bn' ? 'bn-BD' : 'en-US');
@@ -28,6 +29,7 @@ export function DateField({ label, value, onChange }: Props) {
   return (
     <View style={styles.field}>
       <TextInput
+        id={inputId}
         mode="outlined"
         label={label}
         value={display}

@@ -18,11 +18,19 @@ export function statusLabel(status: OrderStatus, t: (key: TranslationKey) => str
   return t(STATUS_KEY[status]);
 }
 
-export function StatusChip({ status, pending }: { status: OrderStatus; pending?: boolean }) {
+export function StatusChip({
+  status,
+  pending,
+  onPress,
+}: {
+  status: OrderStatus;
+  pending?: boolean;
+  onPress?: () => void;
+}) {
   const { t } = useTranslation();
   if (pending) {
     return (
-      <Chip compact style={{ backgroundColor: colors.surfaceMuted }}>
+      <Chip compact onPress={onPress} style={{ backgroundColor: colors.surfaceMuted }}>
         {t('statusPending')}
       </Chip>
     );
@@ -42,6 +50,7 @@ export function StatusChip({ status, pending }: { status: OrderStatus; pending?:
   return (
     <Chip
       compact
+      onPress={onPress}
       selected={selected || status === 'delivered'}
       selectedColor={status === 'cancelled' || status === 'bounced' ? colors.danger : undefined}
       style={style}

@@ -13,6 +13,7 @@ import { db } from '../firebase';
 import { getProduct } from './productsRepo';
 import { getShop, resolveShopForOrder } from './shopsRepo';
 import { deliveryStatus, linesForDelivery, type BounceInput, type DeliveryResult } from '@/src/domain/delivery';
+import { applyOrderCellPatch, type OrderCellPatch } from '@/src/domain/orderCell';
 import { computeLineTotal, computeOrderTotal } from '@/src/domain/orderCalc';
 import type { LineAdjustmentMode, Order, OrderLine, OrderStatus } from '@/src/domain/types';
 import { toDate } from '../converters';
@@ -554,6 +555,62 @@ export async function assignOrderDsr(orderId: string, dsrId: string, dsrName: st
   } catch (error) {
     if (!isOfflineError(error)) throw error;
     await enqueueAssignDsr(orderId, dsrId, dsrName);
+  }
+}
+
+function toCreateLineInput(line: OrderLine): CreateOrderLineInput {
+  return {
+    productId: line.productId,
+    quantityCases: line.quantityCases,
+    quantityPcs: line.quantityPcs,
+    adjustmentMode: line.adjustmentMode,
+    adjustmentValue: line.adjustmentMode === 'freePcs' ? line.freePcs : line.discountAmount,
+    freeProductId: line.freeProductId || undefined,
+  };
+}
+
+async function queueOrderContent(order: Order): Promise<void> {
+  await enqueueUpdateOrder({
+    orderId: order.id,
+    payload: {
+      distributorId: order.distributorId,
+      createdBy: order.srId,
+      shop: { shopId: order.shopId },
+      orderDate: order.orderDate.toISOString(),
+      deliveryDate: order.deliveryDate.toISOString(),
+      lines: order.lines.map(toCreateLineInput),
+      status: order.status,
+    },
+  });
+}
+
+export async function patchOrderCell(order: Order, patch: OrderCellPatch): Promise<Order> {
+  if (patch.field === 'status') return setOrderStatus(order, patch.status);
+
+  const next = applyOrderCellPatch(order, patch);
+  if (isLocalId(order.id)) {
+    const pending = { ...next, pendingSync: true };
+    await updatePendingPreview(order.id, pending);
+    await queueOrderContent(pending);
+    return pending;
+  }
+
+  const update: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (patch.field === 'orderDate') update.orderDate = Timestamp.fromDate(next.orderDate);
+  else if (patch.field === 'deliveryDate') update.deliveryDate = Timestamp.fromDate(next.deliveryDate);
+  else {
+    update.lines = next.lines;
+    update.orderTotal = next.orderTotal;
+  }
+
+  try {
+    await updateDoc(doc(db, 'orders', order.id), update);
+    return next;
+  } catch (error) {
+    if (!isOfflineError(error)) throw error;
+    const pending = { ...next, pendingSync: true };
+    await queueOrderContent(pending);
+    return pending;
   }
 }
 

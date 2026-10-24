@@ -3,12 +3,14 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Chip, Menu, Modal, Portal, Text } from 'react-native-paper';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { useTranslation } from 'react-i18next';
-import { assignOrderDsr, setOrderStatus } from '@/src/data/repos/ordersRepo';
+import { assignOrderDsr, patchOrderCell, setOrderStatus } from '@/src/data/repos/ordersRepo';
 import { listDsrsByDistributor } from '@/src/data/repos/usersRepo';
 import type { AppUser, Order, OrderStatus } from '@/src/domain/types';
 import { statusLabel } from '@/src/ui/StatusChip';
 import { invoiceLineCount } from '@/src/domain/orderSheet';
 import { shareInvoice } from '@/src/services/shareInvoice';
+import type { OrderCellPatch } from '@/src/domain/orderCell';
+import { OrderCellDialog, type OrderCellTarget } from '@/src/ui/orders/OrderCellDialog';
 import {
   activeQuickFilter,
   filterOrders,
@@ -69,6 +71,26 @@ function formatAmount(value: number): string {
     : value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function sameOrderContent(left: Order, right: Order): boolean {
+  if (left.status !== right.status || left.orderTotal !== right.orderTotal) return false;
+  if (left.orderDate.getTime() !== right.orderDate.getTime()) return false;
+  if (left.deliveryDate.getTime() !== right.deliveryDate.getTime()) return false;
+  if (left.lines.length !== right.lines.length) return false;
+  return left.lines.every((line, index) => {
+    const other = right.lines[index];
+    return (
+      line.productId === other.productId &&
+      line.quantityCases === other.quantityCases &&
+      line.freePcs === other.freePcs &&
+      line.discountAmount === other.discountAmount &&
+      line.adjustmentMode === other.adjustmentMode &&
+      line.lineTotal === other.lineTotal &&
+      line.freeProductId === other.freeProductId &&
+      line.bouncedCases === other.bouncedCases
+    );
+  });
+}
+
 function quickFilterLabel(id: OrderQuickFilter, t: (key: string) => string): string {
   switch (id) {
     case 'todayDelivery':
@@ -124,6 +146,10 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted, c
   const [exporting, setExporting] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [cellTarget, setCellTarget] = useState<OrderCellTarget | null>(null);
+  const [cellSaving, setCellSaving] = useState(false);
+  const [cellError, setCellError] = useState<string | null>(null);
+  const [orderEdits, setOrderEdits] = useState<Record<string, Order>>({});
 
   useEffect(() => {
     if (!canManage || !distributorId) return;
@@ -140,11 +166,13 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted, c
   const displayOrders = useMemo(
     () =>
       orders.map((order) => {
+        const edited = orderEdits[order.id];
+        if (edited && !sameOrderContent(order, edited)) return edited;
         const patch = statusOverrides[order.id];
         if (!patch || order.status === patch.status) return order;
         return { ...order, status: patch.status, lines: patch.lines };
       }),
-    [orders, statusOverrides],
+    [orders, orderEdits, statusOverrides],
   );
 
   const shops = useMemo(() => uniqueShops(displayOrders), [displayOrders]);
@@ -627,6 +655,38 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted, c
           selectAll={selectAll}
           onToggleOrder={canManage ? toggleOrder : undefined}
           onToggleAll={canManage ? toggleAll : undefined}
+          onEditCell={(row, field) => {
+            setCellError(null);
+            setCellTarget({
+              order: row.order,
+              productId: row.productId ?? (row.order.lines.length === 1 ? row.order.lines[0]?.productId : undefined),
+              field,
+            });
+          }}
+        />
+        <OrderCellDialog
+          target={cellTarget}
+          distributorId={distributorId}
+          saving={cellSaving}
+          error={cellError}
+          onDismiss={() => {
+            if (!cellSaving) setCellTarget(null);
+          }}
+          onSave={(patch: OrderCellPatch) => {
+            if (!cellTarget) return;
+            setCellSaving(true);
+            setCellError(null);
+            void patchOrderCell(cellTarget.order, patch)
+              .then((next) => {
+                setOrderEdits((current) => ({ ...current, [next.id]: next }));
+                setCellTarget(null);
+              })
+              .catch((error) => {
+                console.error('patchOrderCell failed', error);
+                setCellError(t('errorUpdateOrder'));
+              })
+              .finally(() => setCellSaving(false));
+          }}
         />
         <Portal>
           <Modal

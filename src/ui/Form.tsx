@@ -1,4 +1,4 @@
-import { forwardRef } from 'react';
+import { forwardRef, useId } from 'react';
 import {
   StyleSheet,
   type KeyboardTypeOptions,
@@ -49,6 +49,7 @@ type AppInputProps = {
   autoCorrect?: boolean;
   autoCapitalize?: 'none' | 'sentences' | 'words' | 'characters';
   keyboardType?: KeyboardTypeOptions;
+  id?: string;
   secureTextEntry?: boolean;
   multiline?: boolean;
   autoComplete?: 'email' | 'password' | 'off';
@@ -70,12 +71,14 @@ function sanitizeNumericInput(text: string, integersOnly: boolean): string {
   return `${cleaned.slice(0, dot + 1)}${cleaned.slice(dot + 1).replace(/\./g, '')}`;
 }
 
-export function AppInput({ style, keyboardType, onChangeText, ...rest }: AppInputProps) {
+export function AppInput({ style, keyboardType, onChangeText, id, ...rest }: AppInputProps) {
+  const autoId = useId();
   const isNumeric = keyboardType != null && NUMERIC_KEYBOARDS.has(keyboardType);
   const integersOnly = keyboardType === 'number-pad';
 
   return (
     <TextInput
+      id={id ?? autoId}
       mode="outlined"
       dense={false}
       style={StyleSheet.flatten([styles.field, style])}

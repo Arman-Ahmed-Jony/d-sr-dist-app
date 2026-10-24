@@ -3,6 +3,7 @@ import { Checkbox, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { StatusChip } from '@/src/ui/StatusChip';
 import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
+import type { OrderCellField } from '@/src/domain/orderCell';
 import type { Order } from '@/src/domain/types';
 import type {
   OrderTableGroup,
@@ -34,7 +35,19 @@ type Props = {
   selectAll?: 'checked' | 'unchecked' | 'indeterminate';
   onToggleOrder?: (order: Order) => void;
   onToggleAll?: () => void;
+  onEditCell?: (row: OrderTableRow, field: OrderCellField) => void;
 };
+
+function canEditCell(columnKey: string, row: OrderTableRow, view: OrderTableView): columnKey is OrderCellField {
+  if (columnKey === 'status' || columnKey === 'orderDate') return true;
+  if (columnKey === 'deliveryDate') return view === 'order';
+  if (columnKey === 'discount') return view === 'line' && Boolean(row.productId);
+  if (columnKey === 'product') return view === 'line' && Boolean(row.productId);
+  if (columnKey === 'cases' || columnKey === 'freePcs') {
+    return view === 'line' ? Boolean(row.productId) : row.order.lines.length === 1;
+  }
+  return false;
+}
 
 function formatAmount(value: number): string {
   return Number.isInteger(value) ? String(value) : value.toFixed(2);
@@ -65,6 +78,7 @@ export function OrderDataTable({
   selectAll = 'unchecked',
   onToggleOrder,
   onToggleAll,
+  onEditCell,
 }: Props) {
   const { t } = useTranslation();
 
@@ -250,11 +264,21 @@ export function OrderDataTable({
                     />
                   </View>
                 ) : null}
-                {columns.map((column) => (
-                  <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
-                    {column.key === 'status' ? (
-                      <StatusChip status={row.status} pending={row.order.pendingSync} />
-                    ) : column.key === 'dsr' && onAssignDsr ? (
+                {columns.map((column) => {
+                  const editable = onEditCell != null && canEditCell(column.key, row, view);
+                  if (column.key === 'status') {
+                    return (
+                      <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
+                        <StatusChip
+                          status={row.status}
+                          pending={row.order.pendingSync}
+                          onPress={editable ? () => onEditCell(row, 'status') : undefined}
+                        />
+                      </View>
+                    );
+                  }
+                  const body =
+                    column.key === 'dsr' && onAssignDsr ? (
                       <Pressable onPress={() => onAssignDsr(row.order)} accessibilityRole="button">
                         <Text variant="bodySmall" numberOfLines={2} style={styles.assign}>
                           {column.value(row) || t('assignDsr')}
@@ -273,12 +297,26 @@ export function OrderDataTable({
                         />
                       ) : null
                     ) : (
-                      <Text variant="bodySmall" numberOfLines={2}>
+                      <Text variant="bodySmall" numberOfLines={2} style={editable ? styles.editable : undefined}>
                         {column.value(row)}
                       </Text>
-                    )}
-                  </View>
-                ))}
+                    );
+                  return (
+                    <View key={column.key} style={[styles.cell, cellStyle(column.width)]}>
+                      {editable ? (
+                        <Pressable
+                          onPress={() => onEditCell(row, column.key as OrderCellField)}
+                          accessibilityRole="button"
+                          accessibilityLabel={`${column.label} ${column.value(row)}`}
+                        >
+                          {body}
+                        </Pressable>
+                      ) : (
+                        body
+                      )}
+                    </View>
+                  );
+                })}
               </View>
             ))}
           </View>
@@ -333,6 +371,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   assign: { color: colors.primary },
+  editable: { color: colors.primary },
   groupLabel: { color: colors.primary },
   groupMeta: { color: colors.textMuted, marginTop: 2 },
 });
