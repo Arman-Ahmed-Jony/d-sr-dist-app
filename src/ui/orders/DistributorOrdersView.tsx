@@ -107,7 +107,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [groupMenuOpen, setGroupMenuOpen] = useState(false);
   const [view, setView] = useState<OrderTableView>('line');
-  const [filters, setFilters] = useState<OrderTableFilters>({});
+  const [filters, setFilters] = useState<OrderTableFilters>(() => filtersForQuickFilter('todayOrders'));
   const [sortKey, setSortKey] = useState<OrderTableSortKey>('orderDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [groupBy, setGroupBy] = useState<OrderTableGroupBy>('shop');
