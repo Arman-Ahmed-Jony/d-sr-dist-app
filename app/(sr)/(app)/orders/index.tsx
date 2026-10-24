@@ -1,15 +1,13 @@
 import { useCallback, useState } from 'react';
-import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
-import { ActivityIndicator, FAB, List, Text } from 'react-native-paper';
+import { ActivityIndicator, FAB, Text } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/src/context/AuthContext';
 import { listOrdersBySr } from '@/src/data/repos/ordersRepo';
 import type { Order } from '@/src/domain/types';
-import { EmptyState } from '@/src/ui/EmptyState';
-import { StatusChip } from '@/src/ui/StatusChip';
-import { DeleteDraftOrderButton } from '@/src/ui/orders/DeleteDraftOrderButton';
-import { colors, radii, spacing } from '@/src/theme/tokens';
+import { DistributorOrdersView } from '@/src/ui/orders/DistributorOrdersView';
+import { colors, spacing } from '@/src/theme/tokens';
 
 export default function SrOrderListScreen() {
   const { t } = useTranslation();
@@ -53,17 +51,11 @@ export default function SrOrderListScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      {error ? (
-        <Text variant="bodyMedium" style={styles.error}>
-          {error}
-        </Text>
-      ) : null}
-      <FlatList
-        style={styles.listFlex}
-        data={orders}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={orders.length === 0 ? styles.emptyContainer : styles.list}
+    <View style={styles.flex}>
+      <ScrollView
+        style={styles.flex}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -74,39 +66,19 @@ export default function SrOrderListScreen() {
             tintColor={colors.primary}
           />
         }
-        ListEmptyComponent={
-          <EmptyState
-            icon="clipboard-list-outline"
-            message={t('emptyOrderList')}
-            actionLabel={t('createOrder')}
-            onAction={() => router.push('/(sr)/(app)/orders/create')}
-          />
-        }
-        renderItem={({ item }) => (
-          <List.Item
-            title={item.shopName}
-            description={`${item.orderDate.toLocaleDateString()} · ${item.lines.length} ${t('lines')} · ${item.orderTotal}`}
-            style={styles.row}
-            onPress={() =>
-              router.push({ pathname: '/(sr)/(app)/orders/[id]', params: { id: item.id } })
-            }
-            right={() => (
-              <View style={styles.rowRight}>
-                <StatusChip status={item.status} pending={item.pendingSync} />
-                {(item.status === 'draft' || item.pendingSync) && profile?.distributorId ? (
-                  <DeleteDraftOrderButton
-                    orderId={item.id}
-                    distributorId={profile.distributorId}
-                    compact
-                    onDeleted={() => void load()}
-                    onError={setError}
-                  />
-                ) : null}
-              </View>
-            )}
-          />
-        )}
-      />
+      >
+        {error ? (
+          <Text variant="bodyMedium" style={styles.error}>
+            {error}
+          </Text>
+        ) : null}
+        <DistributorOrdersView
+          orders={orders}
+          distributorId={profile?.distributorId}
+          onDraftDeleted={() => void load()}
+          canManage={false}
+        />
+      </ScrollView>
       <FAB
         icon="plus"
         color={colors.white}
@@ -119,11 +91,8 @@ export default function SrOrderListScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    padding: spacing.lg,
-  },
+  flex: { flex: 1, backgroundColor: colors.background },
+  container: { padding: spacing.lg, paddingBottom: 96 },
   centered: {
     flex: 1,
     backgroundColor: colors.background,
@@ -131,28 +100,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
   },
-  listFlex: { flex: 1 },
-  list: { paddingBottom: 88 },
-  emptyContainer: { flexGrow: 1, justifyContent: 'center' },
-  row: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radii.md,
-    marginBottom: spacing.sm,
-    minHeight: 56,
-    paddingVertical: spacing.sm,
-  },
-  rowRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  muted: { color: colors.textMuted },
+  error: { color: colors.danger, marginBottom: spacing.md },
   fab: {
     position: 'absolute',
     right: spacing.lg,
     bottom: spacing.lg,
     backgroundColor: colors.accent,
   },
-  muted: { color: colors.textMuted, textAlign: 'center' },
-  error: { color: colors.danger, marginBottom: spacing.md },
 });

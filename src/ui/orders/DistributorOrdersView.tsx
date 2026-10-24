@@ -41,6 +41,7 @@ type Props = {
   orders: Order[];
   distributorId?: string;
   onDraftDeleted?: () => void;
+  canManage?: boolean;
 };
 
 type ExtraChip = {
@@ -101,7 +102,7 @@ function extraFilterCount(filters: OrderTableFilters, quick: OrderQuickFilter | 
   return count;
 }
 
-export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }: Props) {
+export function DistributorOrdersView({ orders, distributorId, onDraftDeleted, canManage = true }: Props) {
   const { t } = useTranslation();
   const [sheetOpen, setSheetOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
@@ -125,7 +126,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
   const [exportError, setExportError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!distributorId) return;
+    if (!canManage || !distributorId) return;
     void listDsrsByDistributor(distributorId)
       .then((rows) => {
         rows.sort((a, b) => a.name.localeCompare(b.name));
@@ -134,7 +135,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
       .catch((error) => {
         console.error('listDsrsByDistributor failed', error);
       });
-  }, [distributorId]);
+  }, [canManage, distributorId]);
 
   const displayOrders = useMemo(
     () =>
@@ -570,7 +571,7 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
       />
 
       <OrderTotalsBar totals={totals} />
-      {selectedVisible.length > 0 ? (
+      {canManage && selectedVisible.length > 0 ? (
         <View style={styles.bulkBar}>
           <Text variant="labelLarge">{t('selectedCount', { count: selectedVisible.length })}</Text>
           <Pressable
@@ -621,11 +622,11 @@ export function DistributorOrdersView({ orders, distributorId, onDraftDeleted }:
             if (overlay) return overlay.name || t('unassigned');
             return order.dsrName || t('unassigned');
           }}
-          onAssignDsr={setAssignTarget}
-          selectedIds={selectedIds}
+          onAssignDsr={canManage ? setAssignTarget : undefined}
+          selectedIds={canManage ? selectedIds : undefined}
           selectAll={selectAll}
-          onToggleOrder={toggleOrder}
-          onToggleAll={toggleAll}
+          onToggleOrder={canManage ? toggleOrder : undefined}
+          onToggleAll={canManage ? toggleAll : undefined}
         />
         <Portal>
           <Modal
